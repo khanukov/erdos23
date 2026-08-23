@@ -55,7 +55,7 @@ Note also that the target is `delta <= 0`, not `delta < 0`. `d_mono <= 2/25` is
 the conjecture; strict negativity was never required, and chasing it is what
 pushed the current certificate onto a broken row family.
 
-## 3. Step 0 — settle whether the envelope route is dead (cheap, decisive)
+## 3. Step 0 — attempted, and reduced to 33 named MaxCut problems
 
 `review/k7_leg_ceiling.py` and `review/grotzsch_envelope.py` found a Grotzsch
 blow-up inside the band (`d_edge = 0.3194`, `d_mono = 0.0600`, comfortably
@@ -68,24 +68,99 @@ leg7, 120 restarts with Kernighan-Lin sweeps       : +3.142e-05   (converged)
 control at Petersen: pool -4.448e-05 -> all rules  : -1.280e-04   (the search bites)
 ```
 
-If that positivity is real, **no per-root-MaxCut envelope certificate at any
-flag order can prove the conjecture on the band** — the obstruction is in the
-envelope, not in the relaxation strength, and the route must be replaced rather
-than strengthened. It would also explain the `+4.8558e-05` of
-[arXiv:2606.28041](https://arxiv.org/abs/2606.28041) as a genuine obstruction
-rather than slack, and hence why that paper needed integrality of `bip` and
-stopped at `N <= 200`.
+`review/envelope_maxcut_bound.py` then tried to make that rigorous. Writing
+`min_c mono = diag + S - MaxCut`, a lower bound on the envelope needs an *upper*
+bound on a weighted MaxCut, one instance per root type. It computes both sides:
+local search for the lower bound on each MaxCut, and a checked SDP dual
+certificate (mixing method producing `mu` with `W + Diag(mu) >= 0`, so
+`x^T W x >= -sum mu_i` for every sign vector) for the upper bound, with
+components up to 20 vertices settled exactly by enumeration. The verdict:
 
-A local search only upper-bounds the minimum over rules, so this is evidence,
-not proof. Settling it needs an exact MaxCut or an SDP dual bound on the 107
-weighted instances (up to 128 profile classes each) that
-`review/grotzsch_envelope_hardened.py` already builds. The cheap spectral bound
-is four hundred times too loose. **Do this before writing any more certificate
-code** — it decides everything downstream, and it is hours of work, not weeks.
+```
+components solved exactly: 49; by SDP dual: 33; uncertified duals: 0
+leg7 upper bound (explicit cuts)       : +3.142418e-05
+leg7 lower bound (certified SDP duals) : -1.388769e-04
+```
 
-## 4. Step 1 — the two-coloured flag algebra
+**Inconclusive.** The plain Goemans-Williamson style dual is 4-6% loose —
+calibrated directly against exact enumeration, e.g. root 44 at 20 vertices gives
+exact `0.4733` against an SDP bound of `0.4969` — while the decision needs about
+1%. The total gap is 30.9 envelope units against a budget of 5.70, and a single
+instance (root 0, the empty 7-root, 128 vertices and 1093 edges) carries 18.4 of
+it.
 
-The sound replacement, and the formulation Balogh–Clemen–Lidický already use.
+Two things are worth recording. First, on all 49 components small enough to
+check, the local search found the **exact** optimum, which makes `+3.142e-05`
+very likely the truth. Second, the question is now a finite, well-posed
+computation rather than an open judgement:
+`review/export_maxcut_instances.py` writes the 33 unsettled components in
+`rudy` format under `review/maxcut_instances/`, with a manifest carrying the
+settled part, the root-mass term and the accounting, so a real branch-and-bound
+MaxCut code (BiqMac, BiqCrunch, or an ILP solver) can close it and the answer
+drops straight back in. That is an afternoon for someone with the right solver.
+
+## 3b. The 8-root envelope is the cheap next move, not the coloured algebra
+
+A correction to the reasoning above, and it changes the order of the plan.
+
+`U_k` — the average over root types of the best profile-rule cut — is squeezed
+between `d_mono` below (validity: every rule is a genuine colouring) and
+whatever the certificate needs above. Larger roots express **more** colourings,
+so `U_k` decreases toward `d_mono` as `k` grows: an 8-root envelope is
+**tighter** than a 7-root one, not looser. The 7-root envelope going above
+`2/25` at Grotzsch therefore says nothing about the 8-root one. The repository's
+instinct — add 8-root rows to push the objective down — was directionally
+right; only the data was broken.
+
+At the balanced `C5` blow-up this is forced: `d_mono = U7 = 2/25` exactly and
+`d_mono <= U8 <= U7`, so a correctly generated `U8` is exactly `2/25` there.
+
+`review/u8_envelope.py` measures the shipped `U8` and the Aut-averaged repair of
+it, by local search over rules (an upper bound on each per-root minimum):
+
+```
+graphon                    d_edge    d_mono   U8 shipped  U8 repaired
+Grotzsch(leg7-worst)       0.3194  0.060023    0.045205    0.064016
+Grotzsch(dmono-max)        0.3196  0.061458    0.044136    0.061200
+Petersen(dmono-max)        0.3065  0.060883    0.041809    0.056847
+tf9#1329(dmono-max)        0.3186  0.063394    0.039917    0.056820
+...
+balanced C5 (control)      0.4000  0.080000    0.055756    0.072201
+```
+
+Two readings, and the second is the important one.
+
+* The repair does most of the work. At `C5` it lifts `U8` from `0.0558` — 30%
+  below the value validity demands — to `0.0722`, and the total pair mass
+  reproduces `d_edge = 0.400000000` exactly, so the decomposition is complete
+  as a count. The defect really is in the profile labels.
+* **It is not enough.** At `C5` the repaired `U8` is still `9.75%` below the
+  `0.08` it must equal, and it falls below `d_mono` at seven of the nine in-band
+  points. So the shipped tables carry a defect beyond the automorphism twist,
+  and `u8_decomp.pkl` has to be **regenerated** — summing over all
+  `10P8 = 1,814,400` ordered injections per state, the convention the K7 cache
+  already uses with `9P7` — not patched.
+
+Which leaves the decisive question open but cheap: **is a correctly generated
+`U8` below `2/25` inside the band?** The repaired estimates sit around `0.064`
+at the Grotzsch point and carry roughly a 10% downward bias (calibrated at
+`C5`), so the true value is plausibly near `0.071` against the `0.080` needed —
+suggestive, not decisive. Regenerating the decomposition and re-running
+`review/u8_envelope.py` settles it, and that is far less work than building the
+coloured flag algebra below.
+
+Order of operations, then:
+
+1. regenerate `u8_decomp.pkl` and `u8_decomp_all.pkl` over all injections;
+2. gate them: rooted pair densities PSD at the test graphons, `U8 >= d_mono` at
+   all of them, `U8 = 2/25` at the balanced `C5` blow-up;
+3. scan `sup U8` over the band. If it is below `2/25` with margin, build the LP
+   with positive weight on a band row and rationalise the dual;
+4. only if that fails, go to §4.
+
+## 4. Fallback — the two-coloured flag algebra
+
+The fallback if §3b fails, and the formulation Balogh–Clemen–Lidický already use.
 Carry the cut as part of the structure instead of trying to recover it from the
 root.
 
@@ -209,10 +284,15 @@ Add the assertions the current build lacked:
 
 ## 9. Honest summary
 
-The realistic plan is: settle Step 0; if the envelope is dead, build a
-band-restricted two-coloured flag SDP at order 8, with local-optimality rows,
-and see how far under `0.08` it lands; if order 8 is short, go to order 9 and
-budget serious compute; rationalise the dual and ship an exact replay.
+The realistic plan is: regenerate the 8-root decomposition properly and measure
+`sup U8` over the band (§3b) — days of work, and it may well be enough, since
+larger roots make the envelope tighter and the shipped one is only broken, not
+hopeless. In parallel, hand the 33 exported MaxCut instances (§3) to a real
+solver to learn whether the 7-root envelope is genuinely dead. Only if the
+8-root envelope also lands above `2/25` in the band does this become a
+two-coloured flag SDP project (§4), with order 8 first and order 9 as the
+expensive fallback. Either way the dual has to be rationalised and shipped with
+an exact replay.
 
 The encouraging part is §2: the band has real slack, so this is a question of
 relaxation strength rather than of hitting an exact extremal configuration. The

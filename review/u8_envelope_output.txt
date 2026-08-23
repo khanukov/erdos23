@@ -1,0 +1,24 @@
+# Transcript of review/u8_envelope.py (see ROADMAP.md section 4).
+
+closure widths: max 256 ; |Aut| max 40320
+
+graphon                    d_edge    d_mono   U8 broken U8 repaired       leg8
+Grotzsch(leg7-worst)       0.3194  0.060023    0.045205    0.064016   -0.01598   valid:True  <2/25:True
+Grotzsch(dmono-max)        0.3196  0.061458    0.044136    0.061200   -0.01880   valid:False  <2/25:True
+Petersen(dmono-max)        0.3065  0.060883    0.041809    0.056847   -0.02315   valid:False  <2/25:True
+tf9#1866(dmono-max)        0.3193  0.061247    0.043876    0.060304   -0.01970   valid:False  <2/25:True
+tf9#1329(dmono-max)        0.3186  0.063394    0.039917    0.056820   -0.02318   valid:False  <2/25:True
+tf9#906(dmono-max)         0.3165  0.055917    0.039035    0.054725   -0.02528   valid:False  <2/25:True
+tf9#1607(dmono-max)        0.3196  0.054955    0.042526    0.057853   -0.02215   valid:True  <2/25:True
+tf9#1791(dmono-max)        0.3163  0.062084    0.043082    0.058191   -0.02181   valid:False  <2/25:True
+tf9#171(dmono-max)         0.2903  0.054905    0.034687    0.051650   -0.02835   valid:False  <2/25:True
+
+# Control at the balanced C5 graphon, where d_mono = 2/25 exactly and any valid
+# envelope must satisfy U8 >= 0.08:
+
+closure widths: max 256 ; |Aut| max 40320
+balanced C5 graphon: d_edge=0.400000  d_mono=0.080000  (both exact: 0.4 and 0.08)
+U8 as shipped   : 0.055756   >= d_mono? False
+U8 Aut-averaged : 0.072201   >= d_mono? False
+shortfall after the repair: 0.007799  (9.75% of d_mono)
+sum over roots of the total pair mass = 0.400000000  (should be d_edge = 0.4)
