@@ -1,0 +1,233 @@
+{
+  "root000_n128.rudy": {
+    "vertices": 128,
+    "lower": 631.3025000521457,
+    "plain": 649.6740449903525,
+    "triangle": 631.5720103096979,
+    "certified": true
+  },
+  "root001_n096.rudy": {
+    "vertices": 96,
+    "lower": 29.64802730537978,
+    "plain": 31.350145482888763,
+    "triangle": 29.810572639660837,
+    "certified": true
+  },
+  "root002_n080.rudy": {
+    "vertices": 80,
+    "lower": 14.067643291417236,
+    "plain": 14.926283229323005,
+    "triangle": 14.186971468886654,
+    "certified": true
+  },
+  "root003_n072.rudy": {
+    "vertices": 72,
+    "lower": 8.81116245754732,
+    "plain": 9.393792362676782,
+    "triangle": 8.973735224721967,
+    "certified": true
+  },
+  "root004_n068.rudy": {
+    "vertices": 68,
+    "lower": 8.11512432846624,
+    "plain": 8.673064671330248,
+    "triangle": 8.283583977156797,
+    "certified": true
+  },
+  "root005_n066.rudy": {
+    "vertices": 66,
+    "lower": 12.330334592161856,
+    "plain": 13.177539054095716,
+    "triangle": 12.493042085856759,
+    "certified": true
+  },
+  "root006_n065.rudy": {
+    "vertices": 65,
+    "lower": 91.6531363664212,
+    "plain": 94.66945685827082,
+    "triangle": 91.65314695811486,
+    "certified": true
+  },
+  "root015_n056.rudy": {
+    "vertices": 56,
+    "lower": 6.631953876790698,
+    "plain": 7.067145659448643,
+    "triangle": 6.726260307672544,
+    "certified": true
+  },
+  "root014_n050.rudy": {
+    "vertices": 50,
+    "lower": 6.158755738796995,
+    "plain": 6.481649182786841,
+    "triangle": 6.199615109301916,
+    "certified": true
+  },
+  "root024_n044.rudy": {
+    "vertices": 44,
+    "lower": 3.904546260287109,
+    "plain": 4.1262618669013245,
+    "triangle": 3.952700180319604,
+    "certified": true
+  },
+  "root025_n044.rudy": {
+    "vertices": 44,
+    "lower": 4.330144273460851,
+    "plain": 4.61997557562653,
+    "triangle": 4.393292490208625,
+    "certified": true
+  },
+  "root022_n042.rudy": {
+    "vertices": 42,
+    "lower": 3.734309978427933,
+    "plain": 3.980337144881435,
+    "triangle": 3.7942384826391518,
+    "certified": true
+  },
+  "root030_n038.rudy": {
+    "vertices": 38,
+    "lower": 2.8198469685552072,
+    "plain": 3.021694335615032,
+    "triangle": 2.8641197010974295,
+    "certified": true
+  },
+  "root031_n038.rudy": {
+    "vertices": 38,
+    "lower": 4.709746833466061,
+    "plain": 5.019305399531327,
+    "triangle": 4.748704997415324,
+    "certified": true
+  },
+  "root007_n037.rudy": {
+    "vertices": 37,
+    "lower": 1.0417336799561694,
+    "plain": 1.1006435496006228,
+    "triangle": 1.041733679944,
+    "certified": true
+  },
+  "root033_n036.rudy": {
+    "vertices": 36,
+    "lower": 2.5432470810186554,
+    "plain": 2.742191345288035,
+    "triangle": 2.595384800893747,
+    "certified": true
+  },
+  "root034_n035.rudy": {
+    "vertices": 35,
+    "lower": 22.05251503035355,
+    "plain": 22.877393544637545,
+    "triangle": 22.062668470603022,
+    "certified": true
+  },
+  "root066_n032.rudy": {
+    "vertices": 32,
+    "lower": 2.3771753069273767,
+    "plain": 2.532879934978894,
+    "triangle": 2.407538431943883,
+    "certified": true
+  },
+  "root008_n031.rudy": {
+    "vertices": 31,
+    "lower": 1.017305071857196,
+    "plain": 1.0655036353513156,
+    "triangle": 1.0173050718599994,
+    "certified": true
+  },
+  "root012_n031.rudy": {
+    "vertices": 31,
+    "lower": 1.1073712199859562,
+    "plain": 1.1559186980698724,
+    "triangle": 1.1073740212791199,
+    "certified": true
+  },
+  "root063_n030.rudy": {
+    "vertices": 30,
+    "lower": 2.527255056504385,
+    "plain": 2.6791779630848813,
+    "triangle": 2.543575397192636,
+    "certified": true
+  },
+  "root085_n030.rudy": {
+    "vertices": 30,
+    "lower": 3.0250338435921176,
+    "plain": 3.23091513921719,
+    "triangle": 3.0570698961898106,
+    "certified": true
+  },
+  "root023_n029.rudy": {
+    "vertices": 29,
+    "lower": 1.003345151572268,
+    "plain": 1.0469898225241543,
+    "triangle": 1.003347452525151,
+    "certified": true
+  },
+  "root064_n029.rudy": {
+    "vertices": 29,
+    "lower": 1.8634335047453687,
+    "plain": 1.9973208071399051,
+    "triangle": 1.882937937388616,
+    "certified": true
+  },
+  "root084_n027.rudy": {
+    "vertices": 27,
+    "lower": 1.682200811632148,
+    "plain": 1.7974042846190117,
+    "triangle": 1.7029179599653712,
+    "certified": true
+  },
+  "root083_n026.rudy": {
+    "vertices": 26,
+    "lower": 1.753617055698592,
+    "plain": 1.8750313888273833,
+    "triangle": 1.770200238450332,
+    "certified": true
+  },
+  "root086_n026.rudy": {
+    "vertices": 26,
+    "lower": 1.7990275976912338,
+    "plain": 1.9281605179919308,
+    "triangle": 1.8223739294925168,
+    "certified": true
+  },
+  "root010_n025.rudy": {
+    "vertices": 25,
+    "lower": 0.8592334810153235,
+    "plain": 0.8973619653981308,
+    "triangle": 0.8592334810149999,
+    "certified": true
+  },
+  "root088_n024.rudy": {
+    "vertices": 24,
+    "lower": 1.535990954797975,
+    "plain": 1.6536328623333225,
+    "triangle": 1.5606418471673371,
+    "certified": true
+  },
+  "root032_n023.rudy": {
+    "vertices": 23,
+    "lower": 0.6439498855285775,
+    "plain": 0.6718352001095003,
+    "triangle": 0.6439498855309999,
+    "certified": true
+  },
+  "root089_n023.rudy": {
+    "vertices": 23,
+    "lower": 9.009799662751918,
+    "plain": 9.386263633678597,
+    "triangle": 9.009799662738999,
+    "certified": true
+  },
+  "root105_n023.rudy": {
+    "vertices": 23,
+    "lower": 1.3772161323779766,
+    "plain": 1.4854752206375739,
+    "triangle": 1.398875896589618,
+    "certified": true
+  },
+  "root009_n021.rudy": {
+    "vertices": 21,
+    "lower": 0.5593472079200003,
+    "plain": 0.5905523002258483,
+    "triangle": 0.559347207916,
+    "certified": true
+  }
+}

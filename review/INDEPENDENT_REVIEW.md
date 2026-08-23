@@ -492,29 +492,29 @@ of its rows, not the magnitude of its objective. It also calibrates the prior
 work: `+4.8558e-05` misses the target by `0.3%` of the available room, so the
 7-root route is not obviously capped, it is close.
 
-**c. The open question this route turns on** is whether
-`sup{ U7(W) : W triangle-free, d_edge(W) in [0.2486, 0.3197] } <= 2/25`, where
-`U7` is the envelope with the minimum taken over *all* Boolean profile rules,
-not just the pooled ones. The Grotzsch result in **b** shows the certificate's
-pool fails that test; it does not yet settle whether an unlimited pool would.
-That is now the single most valuable thing to compute, and the Grotzsch
-blow-up is the point to compute it at.
+**c. Settled: the 7-root envelope really is above `2/25` inside the band.**
+`review/maxcut_triangle_bound.py` strengthens the MaxCut duals with the
+triangle inequalities of the cut polytope, dualised with multipliers `lam >= 0`
+and certified by an explicit check of `W' + Diag(mu) >= 0`. That closes the
+total gap over the 33 open instances from `30.8993` to `1.7022`, against a
+budget of `5.7016`, and gives
 
-Each root type turns into one weighted MaxCut instance over its profile
-classes, and those are large — up to 128 classes for the empty 7-root — so
-exhaustive enumeration is out and a real MaxCut routine (or an SDP bound) is
-needed. Concretely: run an exact solver, or a Goemans-Williamson style SDP
-dual, on the 107 instances that `review/grotzsch_envelope_hardened.py` already
-builds, and see whether `leg7` at the Grotzsch point is provably positive.
-Two possible outcomes:
+```
+leg7 >= +2.204235e-05 > 0   at the Grotzsch blow-up with d_edge = 0.319384,
+                            d_mono = 0.060023, inside the closed band
+```
 
-* the true `U7` at Grotzsch still exceeds `2/25` — then **no** 7-root envelope
-  certificate at any flag order can prove the conjecture on the band, the
-  obstruction is in the envelope itself, and the route has to be replaced
-  rather than strengthened;
-* the true `U7` drops below `2/25` — then the route survives, the current row
-  pool is simply too small, and the target is `delta <= 0` (which suffices;
-  strict negativity was never required).
+Since `eta <= leg7` at every feasible point, **every certificate in the 7-root
+per-root-MaxCut framework has `delta > 0`** — with any rule set and at any flag
+order, because `U7` is a property of the graphon. The route is closed, and the
+positive `delta` of arXiv:2606.28041 is a real obstruction rather than slack in
+its relaxation. (Float64 throughout; the margin is `4.0` envelope units against
+rounding of order `1e-12`, so an exact-rational upgrade is mechanical but has
+not been done.)
+
+This does **not** condemn the envelope idea itself: `U_k` decreases toward
+`d_mono` as the root grows, so an 8-root envelope is tighter, and the repaired
+`U8` sits far below `2/25` at the same point. See `ROADMAP.md` §3b.
 
 **d. If the envelope is capped, the sound alternative is the two-coloured flag
 algebra**: carry the max-cut colouring as part of the structure, so `d_mono` is

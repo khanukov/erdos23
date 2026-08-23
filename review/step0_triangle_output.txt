@@ -1,0 +1,49 @@
+# Transcript of review/maxcut_triangle_bound.py over all 33 exported instances.
+# (see ROADMAP.md section 3)
+
+   root000_n128.rudy n= 128  lower   631.302500  plain   649.674045  +triangle   631.572010  gap  0.269510  ( 98.5% closed)  cuts 4348
+   root001_n096.rudy n=  96  lower    29.648027  plain    31.350145  +triangle    29.810573  gap  0.162545  ( 90.5% closed)  cuts 1590
+   root002_n080.rudy n=  80  lower    14.067643  plain    14.926283  +triangle    14.186971  gap  0.119328  ( 86.1% closed)  cuts 1071
+   root003_n072.rudy n=  72  lower     8.811162  plain     9.393792  +triangle     8.973735  gap  0.162573  ( 72.1% closed)  cuts 689
+   root004_n068.rudy n=  68  lower     8.115124  plain     8.673065  +triangle     8.283584  gap  0.168460  ( 69.8% closed)  cuts 648
+   root005_n066.rudy n=  66  lower    12.330335  plain    13.177539  +triangle    12.493042  gap  0.162707  ( 80.8% closed)  cuts 708
+   root006_n065.rudy n=  65  lower    91.653136  plain    94.669457  +triangle    91.653147  gap  0.000011  (100.0% closed)  cuts 2006
+   root015_n056.rudy n=  56  lower     6.631954  plain     7.067146  +triangle     6.726260  gap  0.094306  ( 78.3% closed)  cuts 571
+   root014_n050.rudy n=  50  lower     6.158756  plain     6.481649  +triangle     6.199615  gap  0.040859  ( 87.3% closed)  cuts 651
+   root024_n044.rudy n=  44  lower     3.904546  plain     4.126262  +triangle     3.952700  gap  0.048154  ( 78.3% closed)  cuts 462
+   root025_n044.rudy n=  44  lower     4.330144  plain     4.619976  +triangle     4.393292  gap  0.063148  ( 78.2% closed)  cuts 408
+   root022_n042.rudy n=  42  lower     3.734310  plain     3.980337  +triangle     3.794238  gap  0.059929  ( 75.6% closed)  cuts 415
+   root030_n038.rudy n=  38  lower     2.819847  plain     3.021694  +triangle     2.864120  gap  0.044273  ( 78.1% closed)  cuts 388
+   root031_n038.rudy n=  38  lower     4.709747  plain     5.019305  +triangle     4.748705  gap  0.038958  ( 87.4% closed)  cuts 418
+   root007_n037.rudy n=  37  lower     1.041734  plain     1.100644  +triangle     1.041734  gap -0.000000  (100.0% closed)  cuts 1083
+   root033_n036.rudy n=  36  lower     2.543247  plain     2.742191  +triangle     2.595385  gap  0.052138  ( 73.8% closed)  cuts 342
+   root034_n035.rudy n=  35  lower    22.052515  plain    22.877394  +triangle    22.062668  gap  0.010153  ( 98.8% closed)  cuts 908
+   root066_n032.rudy n=  32  lower     2.377175  plain     2.532880  +triangle     2.407538  gap  0.030363  ( 80.5% closed)  cuts 368
+   root008_n031.rudy n=  31  lower     1.017305  plain     1.065504  +triangle     1.017305  gap  0.000000  (100.0% closed)  cuts 869
+   root012_n031.rudy n=  31  lower     1.107371  plain     1.155919  +triangle     1.107374  gap  0.000003  (100.0% closed)  cuts 887
+   root063_n030.rudy n=  30  lower     2.527255  plain     2.679178  +triangle     2.543575  gap  0.016320  ( 89.3% closed)  cuts 402
+   root085_n030.rudy n=  30  lower     3.025034  plain     3.230915  +triangle     3.057070  gap  0.032036  ( 84.4% closed)  cuts 421
+   root023_n029.rudy n=  29  lower     1.003345  plain     1.046990  +triangle     1.003347  gap  0.000002  (100.0% closed)  cuts 633
+   root064_n029.rudy n=  29  lower     1.863434  plain     1.997321  +triangle     1.882938  gap  0.019504  ( 85.4% closed)  cuts 399
+   root084_n027.rudy n=  27  lower     1.682201  plain     1.797404  +triangle     1.702918  gap  0.020717  ( 82.0% closed)  cuts 337
+   root083_n026.rudy n=  26  lower     1.753617  plain     1.875031  +triangle     1.770200  gap  0.016583  ( 86.3% closed)  cuts 332
+   root086_n026.rudy n=  26  lower     1.799028  plain     1.928161  +triangle     1.822374  gap  0.023346  ( 81.9% closed)  cuts 325
+   root010_n025.rudy n=  25  lower     0.859233  plain     0.897362  +triangle     0.859233  gap -0.000000  (100.0% closed)  cuts 907
+   root088_n024.rudy n=  24  lower     1.535991  plain     1.653633  +triangle     1.560642  gap  0.024651  ( 79.0% closed)  cuts 281
+   root032_n023.rudy n=  23  lower     0.643950  plain     0.671835  +triangle     0.643950  gap  0.000000  (100.0% closed)  cuts 180
+   root089_n023.rudy n=  23  lower     9.009800  plain     9.386264  +triangle     9.009800  gap -0.000000  (100.0% closed)  cuts 792
+   root105_n023.rudy n=  23  lower     1.377216  plain     1.485475  +triangle     1.398876  gap  0.021660  ( 80.0% closed)  cuts 358
+   root009_n021.rudy n=  21  lower     0.559347  plain     0.590552  +triangle     0.559347  gap -0.000000  (100.0% closed)  cuts 784
+
+total gap: plain 30.8993 -> with triangles 1.7022   [195s]
+budget to prove leg7 > 0: 5.7016
+leg7 lower bound now: +2.204235e-05
+VERDICT: leg7 provably positive.
+
+# Calibration against exact enumeration on four instances small enough to settle:
+
+                  file     n        exact    plain SDP    +triangle   closed
+     root009_n021.rudy    21     0.559347     0.590552     0.559347   100.0%  cert=True  [1s]
+     root032_n023.rudy    23     0.643950     0.671835     0.643950   100.0%  cert=True  [2s]
+     root089_n023.rudy    23     9.009800     9.386264     9.009800   100.0%  cert=True  [2s]
+     root105_n023.rudy    23     1.377216     1.485475     1.397725    81.1%  cert=True  [2s]

@@ -55,49 +55,72 @@ Note also that the target is `delta <= 0`, not `delta < 0`. `d_mono <= 2/25` is
 the conjecture; strict negativity was never required, and chasing it is what
 pushed the current certificate onto a broken row family.
 
-## 3. Step 0 — attempted, and reduced to 33 named MaxCut problems
+## 3. Step 0 — SETTLED: the 7-root envelope is dead
 
 `review/k7_leg_ceiling.py` and `review/grotzsch_envelope.py` found a Grotzsch
-blow-up inside the band (`d_edge = 0.3194`, `d_mono = 0.0600`, comfortably
-inside the conjecture) at which the 7-root per-root-MaxCut leg is **positive**:
+blow-up inside the band at which the 7-root per-root-MaxCut leg looks positive.
+`review/envelope_maxcut_bound.py` turns that into a decidable question: writing
+`min_c mono = diag + S - MaxCut`, a lower bound on the envelope needs a
+*certified upper* bound on one weighted MaxCut per root type. Components up to
+20 vertices are settled by enumeration; the rest need a bound.
+
+A plain Goemans-Williamson dual was not enough — 4-6% loose against exact
+enumeration, where the decision needs about 1%, leaving a gap of 30.9 envelope
+units against a budget of 5.70. `review/maxcut_triangle_bound.py` closes it with
+the triangle inequalities of the cut polytope, dualised: for `lam >= 0` and
+`W' = W - sum_t lam_t A_t`,
 
 ```
-leg7, certificate's rule pool                      : +5.503e-05
-leg7, multi-start local search over ALL rules      : +3.158e-05
-leg7, 120 restarts with Kernighan-Lin sweeps       : +3.142e-05   (converged)
-control at Petersen: pool -4.448e-05 -> all rules  : -1.280e-04   (the search bites)
+min_x x^T W x  >=  min_{X psd, diag 1} <W', X> - sum_t lam_t
+               >=  - sum_i mu_i - sum_t lam_t      whenever  W' + Diag(mu) >= 0,
 ```
 
-`review/envelope_maxcut_bound.py` then tried to make that rigorous. Writing
-`min_c mono = diag + S - MaxCut`, a lower bound on the envelope needs an *upper*
-bound on a weighted MaxCut, one instance per root type. It computes both sides:
-local search for the lower bound on each MaxCut, and a checked SDP dual
-certificate (mixing method producing `mu` with `W + Diag(mu) >= 0`, so
-`x^T W x >= -sum mu_i` for every sign vector) for the upper bound, with
-components up to 20 vertices settled exactly by enumeration. The verdict:
+so `(lam, mu)` is a certificate that is *checked*, never trusted. The inner SDP
+is solved by the mixing method, `mu` is read off stationarity and repaired by a
+uniform shift, and `lam` is driven by Polyak subgradient ascent with violated
+triples separated from `X = R R^T` each round. Calibrated against exact
+enumeration it closes 81-100% of the gap; on the four instances small enough to
+check, three bounds are exactly the true MaxCut.
 
 ```
-components solved exactly: 49; by SDP dual: 33; uncertified duals: 0
-leg7 upper bound (explicit cuts)       : +3.142418e-05
-leg7 lower bound (certified SDP duals) : -1.388769e-04
+                       plain SDP        + triangle inequalities
+total gap over 33 instances   30.8993  ->   1.7022
+budget needed to prove leg7 > 0            5.7016
+root 0 (128 vertices, 1093 edges)  18.37  ->   0.2695   (98.5% closed)
+
+leg7 lower bound : +2.204235e-05     VERDICT: provably positive
 ```
 
-**Inconclusive.** The plain Goemans-Williamson style dual is 4-6% loose —
-calibrated directly against exact enumeration, e.g. root 44 at 20 vertices gives
-exact `0.4733` against an SDP bound of `0.4969` — while the decision needs about
-1%. The total gap is 30.9 envelope units against a budget of 5.70, and a single
-instance (root 0, the empty 7-root, 128 vertices and 1093 edges) carries 18.4 of
-it.
+At the graphon
 
-Two things are worth recording. First, on all 49 components small enough to
-check, the local search found the **exact** optimum, which makes `+3.142e-05`
-very likely the truth. Second, the question is now a finite, well-posed
-computation rather than an open judgement:
-`review/export_maxcut_instances.py` writes the 33 unsettled components in
-`rudy` format under `review/maxcut_instances/`, with a manifest carrying the
-settled part, the root-mass term and the accounting, so a real branch-and-bound
-MaxCut code (BiqMac, BiqCrunch, or an ILP solver) can close it and the answer
-drops straight back in. That is an afternoon for someone with the right solver.
+```
+Grotzsch blow-up, weights (10173, 9717, 8691, 10166, 7628, 8213, 7344, 9352,
+                           12084, 10443, 6189) / 100000
+d_edge = 0.319384   inside the closed band [0.2486, 0.3197]
+d_mono = 0.060023   comfortably under 2/25 = 0.08, so the conjecture holds here
+```
+
+the 7-root envelope satisfies `leg7 >= +2.20e-05 > 0`. Since `eta <= leg7` is a
+constraint of the LP and every in-band graphon is a feasible point once the Horn
+and K8 rows are repaired, **every certificate in the published 7-root
+per-root-MaxCut framework has `delta >= +2.2e-05 > 0`** — with any rule set, and
+at any flag order, because `U7` is a property of the graphon and no relaxation
+can certify a bound the quantity itself violates.
+
+That closes the route, and it explains the `+4.8558e-05` of
+[arXiv:2606.28041](https://arxiv.org/abs/2606.28041): that objective is
+positive not because the relaxation is slack but because the envelope it bounds
+genuinely exceeds `2/25` inside the band. Integrality of `bip` was not a
+convenience there, it was unavoidable — and it is why that route stops at
+`N <= 200` and cannot be pushed to all `N` by adding rows.
+
+One caveat, stated precisely: the pipeline is float64 throughout, and the PSD
+checks use a tolerance of `1e-9 * max|W'|`. The margin is `4.0` envelope units
+against accumulated rounding of order `1e-12`, so the conclusion is numerically
+overwhelming but is not yet an exact-rational proof. The upgrade is mechanical:
+rational class weights make every `N^sigma` rational, scaling makes the MaxCut
+instances integral, and the `W' + Diag(mu) >= 0` checks become rational
+`LDL^T`. Worth doing before this appears in a manuscript.
 
 ## 3b. The 8-root envelope is the cheap next move, not the coloured algebra
 
@@ -280,7 +303,9 @@ Add the assertions the current build lacked:
   `d_mono <= 2/25`, which has 0.016 of slack. Aim at the weaker one.
 * **Any certificate with `delta < -0.016060`.** Impossible, by §2.
 * **Any certificate with zero dual weight on both band rows.** Impossible, by §2.
-* **The per-root-MaxCut envelope**, if Step 0 confirms the Grotzsch positivity.
+* **The 7-root per-root-MaxCut envelope.** Settled in §3: `U7 > 2/25` at an
+  in-band graphon, so no rule set and no flag order can rescue it. This is the
+  framework of arXiv:2606.28041, and it is why that paper needs integrality.
 
 ## 9. Honest summary
 
