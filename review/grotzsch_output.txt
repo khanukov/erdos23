@@ -1,0 +1,22 @@
+# Transcript of review/grotzsch_envelope.py (see INDEPENDENT_REVIEW.md section 10b).
+
+Grotzsch blow-up, weights: [0.10173, 0.09717, 0.08691, 0.10166, 0.07628, 0.08213, 0.07344, 0.09352, 0.12084, 0.10443, 0.06189]
+d_edge=0.319385  d_mono=0.060024   (band [0.2486,0.3197], 2/25=0.08)
+leg7 with the certificate's K7 pool : +5.503494e-05
+leg7 with local-search over ALL rules: +3.157707e-05   [1s]
+
+=> the true 7-root envelope at this point exceeds 2/25: True
+
+control, Petersen: pool -4.448000e-05   all-rules -1.280000e-04
+
+# Hardened re-run: 120 restarts with Kernighan-Lin sweeps, plus a spectral lower bound.
+
+Grotzsch blow-up: d_edge=0.319384  d_mono=0.060023  (band upper end 0.3197, 2/25=0.08)
+q9 support: 508 states, sum 1.000000000000
+active profile classes per root: max 128
+
+leg7 upper bound (strong local search over all rules) : +3.142418e-05   [34s]
+leg7 lower bound (spectral, rigorous)                : -2.753125e-02
+
+strictly positive under the strong search?  True
+rigorously positive?                        False

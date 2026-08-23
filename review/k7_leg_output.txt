@@ -1,0 +1,35 @@
+# Transcript of review/k7_leg_ceiling.py --sample 60 (see INDEPENDENT_REVIEW.md section 10).
+
+K7 pool prepared in 13.5s; rules per root: 3..33
+  5/65 bases, 22s
+  10/65 bases, 36s
+  15/65 bases, 49s
+  20/65 bases, 61s
+  25/65 bases, 73s
+  30/65 bases, 87s
+  35/65 bases, 101s
+  40/65 bases, 118s
+  45/65 bases, 130s
+  50/65 bases, 145s
+  55/65 bases, 163s
+  60/65 bases, 181s
+  65/65 bases, 197s
+
+          leg7       base   d_edge   d_mono
+  3.649113e-05   Grotzsch   0.3196   0.0556
+ -4.448000e-05   Petersen   0.3000   0.0600
+ -2.415751e-04   tf9#1128   0.3197   0.0453
+ -2.914771e-04    tf9#663   0.3197   0.0416
+ -3.032650e-04   tf9#1458   0.3162   0.0464
+ -3.147929e-04   tf9#1693   0.3197   0.0490
+ -3.643300e-04   tf9#1199   0.3046   0.0496
+ -3.664435e-04   tf9#1158   0.3191   0.0326
+ -3.680994e-04   tf9#1758   0.3096   0.0487
+ -3.914403e-04   tf9#1147   0.3168   0.0358
+ -4.067539e-04   tf9#1121   0.3193   0.0458
+ -4.341483e-04    tf9#748   0.3192   0.0477
+
+max leg7 found inside the band : +3.649113e-05   (at Grotzsch)
+certificate objective delta*   : -9.878887e-04
+=> a repaired certificate in the 7-root framework cannot go below +3.649e-05,
+   so the claimed delta* is out of reach there by a factor of 27.

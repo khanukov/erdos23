@@ -287,6 +287,19 @@ python3 review/check_row_validity.py \
     --graphon .review-work/c5_inband.pkl
 ```
 
+The two scans behind sections 9 and 10 run the same way:
+
+```bash
+python3 review/verify_aut_fix.py --flagsdp $B/public_flagsdp_data \
+    --graphon .review-work/c5_balanced.pkl        # root cause and its repair
+
+python3 review/band_ceiling.py --flagsdp $B/public_flagsdp_data   # ~4 min
+
+python3 review/k7_leg_ceiling.py \
+    --certificate .replay-work/erdos23_global_exact_dual.json \
+    --flagsdp $B/public_flagsdp_data --k7-cache $B/k7_compact_v1 --sample 60
+```
+
 `graphon_state_vector.py` needs no order-10 catalogue: it builds each blow-up
 `H[a]` directly, identifies it through its vertex-deletion profile against the
 repository's own 9→10 deletion lift (verified to separate all 12,172 states),
@@ -362,39 +375,143 @@ blow-up (`d_edge = 0.4`). So at least one of `y0, y1` must be strictly
 positive. Any solve that returns `y0 = y1 = 0` is a build failure by
 construction, not a result.
 
-**b. The margin available on this route is of order 1e-5, not 1e-3.** With the
-certificate's own K7 pool, the K7 leg — which upper-bounds `eta` in every
-feasible point, repaired or not — evaluates on in-band graphons to:
+**b. The K7 leg goes positive inside the band, at the Grotzsch graphon.**
+`eta <= leg7` is a constraint of the LP, and once the Horn and K8 rows are
+repaired every in-band triangle-free graphon is a feasible point, so a
+certificate in the published **7-root framework** — all dual weight on the K7
+leg, no K8 leg — satisfies `delta >= max{ leg7(W) : W in-band }`.
+`review/k7_leg_ceiling.py` hill-climbs the class weights of blow-up graphons
+over `C5`, `C7`, `C9`, Petersen, Grotzsch and 60 random triangle-free
+9-vertex bases:
 
-| graphon | `d_edge` | `d_mono` | K7 leg |
-|---|---|---|---|
-| Petersen | 0.3000 | 0.0600 | **-4.448e-05** |
-| `C5`, weights `1/4,1/4,1/12,1/3,1/12` | 0.3194 | 0.0417 | -1.443e-03 |
-| `C5`, weights `1/12,1/6,1/3,1/12,1/3` | 0.3056 | 0.0278 | -3.014e-03 |
-| `C5`, weights `1/6,1/6,1/12,1/2,1/12` | 0.2778 | 0.0278 | -5.459e-03 |
+```
+          leg7       base   d_edge   d_mono
+  3.649113e-05   Grotzsch   0.3196   0.0556      <-- positive
+ -4.448000e-05   Petersen   0.3000   0.0600
+ -2.415751e-04   tf9#1128   0.3197   0.0453
+ -2.914771e-04    tf9#663   0.3197   0.0416
+ ...
+ -1.443000e-03   C5, weights 1/4,1/4,1/12,1/3,1/12
+```
 
-Two things follow. First, weighted `C5` blow-ups are *not* the binding
-configurations — Petersen is thirty times closer to zero than the best of them,
-so any serious search has to sweep a far richer family than `C5` blow-ups.
-Second, at Petersen the envelope sits `4.4e-05` below `2/25` while the truth
-`d_mono` sits `2.0e-02` below: the 7-root envelope over-estimates `bip` by a
-factor of roughly 450 there. That is the same order of magnitude as the
-`+4.8558e-05` reported in arXiv:2606.28041, and it is about twenty times
-smaller than the `-9.88e-04` this certificate claims. Unless a repaired 8-root
-leg is strictly slacker than the 7-root leg at Petersen — which would be
-surprising, since larger roots make the envelope *smaller*, not larger — the
-claimed objective is unreachable for the repaired LP.
+The Grotzsch blow-up sits inside the band, satisfies the conjecture with room
+to spare (`d_mono = 0.0556`, well under `2/25`), and yet drives the K7 leg
+**above zero**. With this row pool, a 7-root certificate therefore cannot reach
+`delta <= 0` at all, let alone `-9.88e-04` — it is stuck at `>= +3.65e-05`.
+
+Enlarging the pool does not obviously rescue it. `review/grotzsch_envelope.py`
+re-optimises the Grotzsch weights and then replaces the pool minimum by a
+multi-start local search over **all** Boolean profile rules — one weighted
+MaxCut per root type, up to 128 profile classes wide:
+
+```
+Grotzsch blow-up, d_edge = 0.319385, d_mono = 0.060024
+  leg7, certificate's K7 pool      : +5.503e-05
+  leg7, local search over all rules: +3.158e-05     <-- still positive
+control, Petersen
+  leg7, certificate's K7 pool      : -4.448e-05
+  leg7, local search over all rules: -1.280e-04     <-- the search does bite
+```
+
+The control matters: at Petersen the same search improves the pool value by a
+factor of three, so it is finding genuinely better rules. At Grotzsch it
+improves the value by 43% and still cannot cross zero. Hardening the search to
+120 restarts with Kernighan-Lin sweeps moves it only to `+3.142e-05`, i.e. it
+has converged (`review/grotzsch_envelope_hardened.py`).
+
+A local search only upper-bounds the true minimum, so this is strong evidence,
+not proof, that the 7-root envelope genuinely exceeds `2/25` at that point. The
+obvious cheap rigorous bound is far too weak to settle it — the spectral bound
+`min_c mono >= diag + S/2 + (n/4) lambda_min(B)` gives `leg7 >= -2.75e-02`, four
+hundred times looser than needed. Closing the gap needs a real MaxCut solver or
+an SDP bound; see **c**.
+
+That number sits right next to the `+4.8558e-05` reported in
+arXiv:2606.28041. Read together, the two say something important: that paper's
+positive `delta` is very probably not slack in its relaxation but a real
+obstruction, which is exactly why it needed integrality of `bip` and could only
+reach `N <= 200`. Whether the obstruction survives an *unlimited* K7 rule pool
+is the open question in **c** below — the pool minimum is only an upper
+estimate of the true envelope.
+
+Note also that weighted `C5` blow-ups are *not* the binding configurations:
+Petersen is thirty times closer to zero than the best of them, Grotzsch clears
+zero entirely. Any serious search has to sweep a far richer family than `C5`
+blow-ups.
+
+Third — and this is the trap — a repaired K8 leg does *not* restore the claimed
+objective's plausibility, it relocates the entire burden of proof onto the
+8-root envelope. Larger roots make the envelope *smaller* (more root types,
+each minimised independently), so `U8 <= U7` and the K8 leg is the binding one;
+`eta = min(leg7, leg8) = leg8`. A `delta` near `-1e-03` is then attainable only
+because of the 8-root leg — exactly the leg whose validity fails today and
+whose repaired form nobody has yet exhibited. Note also that the two legs are
+not on the same scale: `leg7 = (mass7/10) * (U7 - 2/25)` carries a
+graphon-dependent factor `mass7/10` (0.014 at Petersen, 0.019 at `C5`, 0.17 at
+an unbalanced `C5`) that compresses it toward zero, while `leg8 = U8 - 2/25`
+does not. Any future manuscript has to justify that mismatch explicitly rather
+than let the optimiser exploit it.
+
+**b'. There is a hard ceiling on how negative any valid `delta` can be.**
+"The LP is a relaxation" means that at every in-band triangle-free graphon `W`
+the point `(q(W), eta = d_mono(W) - 2/25, ...)` is feasible, so
+`delta >= d_mono(W) - 2/25` for every such `W`, hence
+
+```
+delta  >=  sup{ d_mono(W) : W triangle-free, d_edge(W) in [0.2486, 0.3197] } - 2/25.
+```
+
+No extra rows, higher flag order or better Gram block can get past that.
+`review/band_ceiling.py` lower-bounds the supremum by hill-climbing the class
+weights of blow-up graphons over every triangle-free graph on 9 vertices (all
+1,897, read out of `cache_n9.pkl`) plus `C5`, `C7`, `C9`, `C11`, Petersen and
+Grotzsch, and by allowing dilutions `theta*W` — which stay triangle-free, since
+`t(K3, theta W) = theta^3 t(K3, W) = 0`, and pull a graphon above the band back
+into it along its own ray. Every base is asserted triangle-free first (an
+earlier draft of this scan used a wrong Grotzsch edge list that contained
+triangles and duly reported a "counterexample" to the conjecture).
+
+```
+   d_mono       base   h   m   d_edge   theta   bip/m
+ 0.063940         C5   5   5   0.3197  0.7992  0.2000
+ 0.063940   Grotzsch  11  20   0.3197  0.9671  0.2000
+ 0.063864   tf9#1866   9  14   0.3197  0.9929  0.1998
+ ...
+best in-band d_mono found : 0.063940 = 0.3197/5
+best bip/m ratio seen     : exactly 1/5, never exceeded
+```
+
+So `delta >= -0.016060` for any valid certificate, and the entire slack of the
+conjecture inside the band is at most `2/25 - 0.06394 = 0.01606`. This does
+*not* exclude the claimed `-9.88e-04` — it is only 6% of the available room —
+which is worth stating plainly: the defect in this certificate is the validity
+of its rows, not the magnitude of its objective. It also calibrates the prior
+work: `+4.8558e-05` misses the target by `0.3%` of the available room, so the
+7-root route is not obviously capped, it is close.
 
 **c. The open question this route turns on** is whether
-`sup{ U7(W) : W triangle-free, d_edge(W) in [0.2486, 0.3197] } < 2/25`. If it
-is, a strong enough finite relaxation can certify a negative objective and the
-conjecture follows. If it is not — if some in-band graphon drives the envelope
-to `2/25` or above — then no certificate at any order can give `delta < 0`, and
-the envelope has to be replaced, not strengthened. Settling this is the first
-thing worth computing, and it is cheap relative to another certificate run:
-evaluate `U7` (minimum over *all* profile rules per root, i.e. one weighted
-MaxCut instance per root type) on a wide family of in-band triangle-free
-graphons and look for the supremum.
+`sup{ U7(W) : W triangle-free, d_edge(W) in [0.2486, 0.3197] } <= 2/25`, where
+`U7` is the envelope with the minimum taken over *all* Boolean profile rules,
+not just the pooled ones. The Grotzsch result in **b** shows the certificate's
+pool fails that test; it does not yet settle whether an unlimited pool would.
+That is now the single most valuable thing to compute, and the Grotzsch
+blow-up is the point to compute it at.
+
+Each root type turns into one weighted MaxCut instance over its profile
+classes, and those are large — up to 128 classes for the empty 7-root — so
+exhaustive enumeration is out and a real MaxCut routine (or an SDP bound) is
+needed. Concretely: run an exact solver, or a Goemans-Williamson style SDP
+dual, on the 107 instances that `review/grotzsch_envelope_hardened.py` already
+builds, and see whether `leg7` at the Grotzsch point is provably positive.
+Two possible outcomes:
+
+* the true `U7` at Grotzsch still exceeds `2/25` — then **no** 7-root envelope
+  certificate at any flag order can prove the conjecture on the band, the
+  obstruction is in the envelope itself, and the route has to be replaced
+  rather than strengthened;
+* the true `U7` drops below `2/25` — then the route survives, the current row
+  pool is simply too small, and the target is `delta <= 0` (which suffices;
+  strict negativity was never required).
 
 **d. If the envelope is capped, the sound alternative is the two-coloured flag
 algebra**: carry the max-cut colouring as part of the structure, so `d_mono` is

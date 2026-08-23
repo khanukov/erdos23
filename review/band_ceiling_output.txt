@@ -1,0 +1,29 @@
+# Transcript of review/band_ceiling.py (see INDEPENDENT_REVIEW.md section 11).
+
+named bases verified triangle-free: ['C5', 'C7', 'C9', 'C11', 'Petersen', 'Grotzsch']
+bases scanned: 1902 (all triangle-free graphs on 9 vertices + named)
+
+   d_mono       base   h   m   d_edge   theta   bip/m
+ 0.063940         C5   5   5   0.3197  0.7992  0.2000
+ 0.063940   Grotzsch  11  20   0.3197  0.9671  0.2000
+ 0.063864   tf9#1866   9  14   0.3197  0.9929  0.1998
+ 0.063674   tf9#1893   9  13   0.3197  0.9932  0.1992
+ 0.063669   tf9#1885   9  17   0.3197  0.7993  0.1992
+ 0.063509   tf9#1329   9  13   0.3197  0.9994  0.1987
+ 0.063364    tf9#171   9   9   0.3197  0.9619  0.1982
+ 0.063266    tf9#907   9  11   0.3197  0.9949  0.1979
+ 0.063255    tf9#173   9  10   0.3197  0.9924  0.1979
+ 0.062992    tf9#878   9  12   0.3197  0.9997  0.1970
+ 0.062706    tf9#906   9  12   0.3196  1.0000  0.1962
+ 0.062580    tf9#596   9  10   0.3197  0.9857  0.1957
+
+best in-band d_mono found : 0.063940000
+best bip/m ratio seen     : 0.200000000   (C5 and Petersen both give exactly 1/5)
+2/25                      : 0.080000000
+
+=> every valid certificate must satisfy delta >= -1.606000e-02
+   the certificate's claimed delta* is        -9.878887e-04
+   claimed value excluded by this ceiling?    False
+
+   The whole slack of the conjecture inside the band is therefore at most
+   2/25 - 0.063940 = 0.016060.
