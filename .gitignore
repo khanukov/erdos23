@@ -5,3 +5,7 @@ __pycache__/
 *.out
 *.synctex.gz
 .replay-work/
+
+# review scratch space
+.review-work/
+.work/

@@ -1,0 +1,122 @@
+# Transcript of review/check_row_validity.py at commit e35fca0 (see INDEPENDENT_REVIEW.md §8).
+
+[0] dual weight on the two edge-density band rows
+    y(d_edge <= 0.3197) = 0/1000000000000
+    y(d_edge >= 0.2486) = 0/1000000000000
+    Both are ZERO: the certificate never uses the middle band, so its
+    bound applies verbatim to every triangle-free graphon, including the
+    C5 blow-up at d_edge = 0.4 where d_mono = 2/25 exactly.
+==============================================================================
+graphon: c5 blow-up, weights 1/5,1/5,1/5,1/5,1/5
+  d_edge = 2/5 = 0.4   inside the certificate band [1243/5000, 3197/10000]? False
+  d_mono = 2/25 = 0.08   (2/25 = 0.08)
+
+[1] fixed-Gram moment row  <m,q> >= 0 : True (+1.729100947e-04)
+
+[2] rooted-Horn rows  <horn,q> >= 0 : 38 of 5013 are STRICTLY NEGATIVE
+    most negative value: -7.741440000e-03
+    dual weight carried by the invalid rows: 852676689272581/4170750664406267 = 20.4% of the Horn weight
+       row  root            value     multiplier x 10^12
+      3967   367     -0.007741440            95916412484
+      5460   367     -0.007741440           555017579201
+       385   364     -0.005160960           145931800502
+      3664   367     -0.005160960           491089385914
+      3675   401     -0.005160960           602653289371
+      5720   123     -0.004300800             5918021002
+      2305    43     -0.004014080         18836916252859
+       991   401     -0.002580480          1152445761855
+    roots involved: [0, 1, 7, 18, 43, 53, 123, 199, 230, 364, 367, 401, 405, 406]
+
+[3] K7 per-root MaxCut envelope, sum over the 107 roots of the pool minimum
+    mono part / root-mass part = 2/25 = 0.08   vs d_mono = 0.08
+
+[4] K8 per-root MaxCut envelope U8, sum over the 410 roots of the pool minimum
+    U8 = 109178/1953125 = 0.055899136   vs d_mono = 0.08   ->  U8 >= d_mono ? False
+
+[5] LP value at this graphon; every leg must dominate d_mono - 2/25 = +0.000000000e+00
+    K7 leg (dual weight 1/1000000000000) = +0.000000000e+00   valid here? True
+    K8 leg (dual weight 999999999999/1000000000000) = -2.410086400e-02   valid here? False
+    eta = min(legs)              = -2.410086400e-02   dominates d_mono - 2/25? False
+    certificate objective delta* = -9.878886952e-04
+==============================================================================
+graphon: petersen blow-up, weights 1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10
+  d_edge = 3/10 = 0.3   inside the certificate band [1243/5000, 3197/10000]? True
+  d_mono = 3/50 = 0.06   (2/25 = 0.08)
+
+[1] fixed-Gram moment row  <m,q> >= 0 : True (+2.755548180e-05)
+
+[2] rooted-Horn rows  <horn,q> >= 0 : 330 of 5013 are STRICTLY NEGATIVE
+    most negative value: -1.814400000e-03
+    dual weight carried by the invalid rows: 989739818368109/4170750664406267 = 23.7% of the Horn weight
+       row  root            value     multiplier x 10^12
+      1767   370     -0.001814400           166263442277
+      2154   385     -0.001693440           289092866607
+       388   370     -0.001451520           703450067144
+       297    43     -0.001149120                    101
+       296    43     -0.001068480           196158383455
+      1285   385     -0.000967680           320356946546
+      3853    43     -0.000940800        752558454589685
+      3082    43     -0.000907200          5277346734785
+    roots involved: [0, 1, 2, 3, 6, 7, 8, 14, 16, 18, 20, 21, 29, 30, 32, 34, 36, 39, 43, 45, 47, 51, 53, 60, 62, 76, 77, 82, 98, 107, 120, 122, 123, 125, 126, 130, 142, 147, 163, 166, 167, 192, 197, 199, 210, 214, 218, 223, 224, 230, 257, 259, 265, 267, 309, 313, 355, 358, 361, 364, 367, 368, 370, 385, 386, 387, 395, 397, 401, 405, 406]
+
+[3] K7 per-root MaxCut envelope, sum over the 107 roots of the pool minimum
+    mono part / root-mass part = 669/8710 = 0.07680826636050517   vs d_mono = 0.06
+
+[4] K8 per-root MaxCut envelope U8, sum over the 410 roots of the pool minimum
+    U8 = 873189/15625000 = 0.055884096   vs d_mono = 0.06   ->  U8 >= d_mono ? False
+
+[5] LP value at this graphon; every leg must dominate d_mono - 2/25 = -2.000000000e-02
+    K7 leg (dual weight 1/1000000000000) = -4.448000000e-05   valid here? True
+    K8 leg (dual weight 999999999999/1000000000000) = -2.411590400e-02   valid here? False
+    eta = min(legs)              = -2.411590400e-02   dominates d_mono - 2/25? False
+    certificate objective delta* = -9.878886952e-04
+==============================================================================
+graphon: c5 blow-up, weights 3/5,1/10,1/10,1/10,1/10
+  d_edge = 3/10 = 0.3   inside the certificate band [1243/5000, 3197/10000]? True
+  d_mono = 1/50 = 0.02   (2/25 = 0.08)
+
+[1] fixed-Gram moment row  <m,q> >= 0 : True (+1.479584781e-03)
+
+[2] rooted-Horn rows  <horn,q> >= 0 : 17 of 5013 are STRICTLY NEGATIVE
+    most negative value: -8.579200000e-04
+    dual weight carried by the invalid rows: 811678693264114/4170750664406267 = 19.5% of the Horn weight
+       row  root            value     multiplier x 10^12
+      2305    43     -0.000857920         18836916252859
+      4256   406     -0.000753340           866390788008
+       296    43     -0.000696640           196158383455
+       297    43     -0.000696640                    101
+      3853    43     -0.000696640        752558454589685
+      6729   406     -0.000520380          2165951529316
+      3082    43     -0.000427840          5277346734785
+      7569   406     -0.000287490           674070739992
+    roots involved: [0, 18, 43, 230, 364, 405, 406]
+
+[3] K7 per-root MaxCut envelope, sum over the 107 roots of the pool minimum
+    mono part / root-mass part = 105/5218 = 0.02012265235722499   vs d_mono = 0.02
+
+[4] K8 per-root MaxCut envelope U8, sum over the 410 roots of the pool minimum
+    U8 = 6859177/500000000 = 0.013718354   vs d_mono = 0.02   ->  U8 >= d_mono ? False
+
+[5] LP value at this graphon; every leg must dominate d_mono - 2/25 = -6.000000000e-02
+    K7 leg (dual weight 1/1000000000000) = -1.031052000e-02   valid here? True
+    K8 leg (dual weight 999999999999/1000000000000) = -6.628164600e-02   valid here? False
+    eta = min(legs)              = -6.628164600e-02   dominates d_mono - 2/25? False
+    certificate objective delta* = -9.878886952e-04
+
+==============================================================================
+[6] rooted pair-density matrices from u8_decomp_all.pkl at: c5 blow-up, weights 1/5,1/5,1/5,1/5,1/5
+    root types with a NEGATIVE eigenvalue: 14 of 410
+     root     min eigenvalue      root mass
+      401   -5.064477157e-03    0.064512000
+      367   -4.469522468e-03    0.064512000
+      364   -2.532238579e-03    0.032256000
+      123   -1.688159052e-03    0.021504000
+       43   -1.575213181e-03    0.014336000
+      230   -1.258946017e-03    0.027238400
+      405   -1.125439368e-03    0.014336000
+      406   -1.045286014e-03    0.013440000
+
+    exact rational witness for root 401 (width 33):
+      x^T M x = -30911132658357/6103515625000000
+              = -5.064479975e-03   with x^T x = 1.000001
+      M is provably not positive semidefinite: True
