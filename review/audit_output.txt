@@ -120,3 +120,16 @@ graphon: c5 blow-up, weights 3/5,1/10,1/10,1/10,1/10
       x^T M x = -30911132658357/6103515625000000
               = -5.064479975e-03   with x^T x = 1.000001
       M is provably not positive semidefinite: True
+contributions per order-10 state: [90]   (45 free pairs x 2 orderings = one labelling per 8-subset)
+the K7 cache instead normalises by 9P7 = 181440, i.e. all ordered injections
+
+|Aut(tau)|: min 1, max 40320, nontrivial for 385 of 410 root types
+
+rooted pair-density matrices at: c5 blow-up, weights 1/5,1/5,1/5,1/5,1/5
+  non-PSD before Aut-averaging : 14  [0, 1, 7, 18, 43, 53, 123, 199, 230, 364, 367, 401, 405, 406]
+  non-PSD after  Aut-averaging : 0  []
+  |Aut| of the failing types   : {0: 40320, 1: 1440, 7: 5040, 18: 192, 43: 72, 53: 1440, 123: 48, 199: 144, 230: 720, 364: 32, 367: 16, 401: 16, 405: 72, 406: 1152}
+
+  Every failing type has a nontrivial automorphism group, and averaging
+  over it restores positive semidefiniteness: the defect is the arbitrary
+  choice of one labelling per 8-subset, exactly as diagnosed.

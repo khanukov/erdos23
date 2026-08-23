@@ -298,19 +298,132 @@ independently built order-9 vector.
 `check_row_validity.py` reuses the verifier's row reconstruction verbatim, so a
 disagreement is a disagreement with the certificate, not with a re-implementation.
 
-## 9. Suggested next steps for the author
+## 9. Root cause, and a fix that is verified to work
 
-1. Regenerate `u8_decomp.pkl` and `u8_decomp_all.pkl` with a profile labelling
-   that depends only on the root, and re-check that `M^tau` is PSD at the `C5`
-   graphon for all 410 roots before solving anything.
-2. Add `graphon_state_vector.py`-style validity assertions to the LP generator:
-   no row should ever enter the pool that is violated by the `C5`, Petersen, or
-   unbalanced-`C5` state vectors. A cutting-plane loop with an invalid
-   separator will always find a spurious optimum.
-3. Treat a dual solution with zero weight on both band rows as a build failure,
-   not a result; and treat any `delta < 0` as a red flag, since a valid band
-   certificate must degrade to `>= 0` at `d_edge = 0.4`.
-4. Publish the generators for the four `public_flagsdp_data` files, or add
-   verifier-side structural checks (state catalogue, decomposition
-   completeness, PSD of the rooted pair densities) so that the trust boundary
+`u8_decomp*.pkl` stores exactly **90 contributions per order-10 state** — 45
+free pairs times 2 orderings, i.e. one labelling of each 8-element root subset.
+The K7 cache is normalised by `9P7 = 181440`: it sums over *all* ordered
+injections of the 7 root vertices. That is the whole difference between the
+family that works and the family that does not.
+
+With a single labelling per subset, the labelling a canonical form assigns
+depends on how the subset sits inside the state, hence on the two free
+vertices. Writing `lambda(R,u,v) = alpha . lambda_0` with `alpha in Aut(tau)`,
+the recorded matrix is `E[e_{alpha a0} e_{alpha b0}^T]` with `alpha` correlated
+with `(u,v)`, rather than the true rooted pair density
+`M_0 = E_R[1(tau) p p^T]`. Two consequences, both observed:
+
+* `M` need not be PSD, so copositive `C` no longer gives `<C, M> >= 0` — the
+  negative rooted-Horn rows;
+* a "rule" no longer defines one colouring per root, it defines a colouring
+  that can adapt to the pair being scored — so the minimum over rules can slip
+  *below* `d_mono`, which is exactly what `U8` does.
+
+Averaging the recorded pairs over `Aut(tau)` cancels the arbitrary `alpha`:
+
+```
+(1/|Aut|) sum_beta e_{beta alpha a0} e_{beta alpha b0}^T
+    = (1/|Aut|) sum_gamma e_{gamma a0} e_{gamma b0}^T,
+```
+
+so the symmetrised matrix is `(1/|Aut|) sum_gamma gamma M_0 gamma^T`, a
+nonnegative mixture of PSD matrices; and the symmetrised MaxCut row is an
+average over `gamma` of `<h_{tau, c . gamma}, q>`, each term being an average
+over labelled roots of the mono-edge density of **one fixed** two-colouring,
+hence `>= d_mono` times the root mass. Summing over root types restores
+`U8 >= d_mono`.
+
+`review/verify_aut_fix.py` checks the first half numerically. At the `C5`
+graphon:
+
+```
+non-PSD before Aut-averaging : 14  [0, 1, 7, 18, 43, 53, 123, 199, 230, 364, 367, 401, 405, 406]
+non-PSD after  Aut-averaging : 0   []
+|Aut| of the failing types   : {0: 40320, 1: 1440, 7: 5040, 18: 192, 43: 72, 53: 1440,
+                                123: 48, 199: 144, 230: 720, 364: 32, 367: 16, 401: 16,
+                                405: 72, 406: 1152}
+```
+
+Every failing type has a nontrivial automorphism group — the defect bites
+exactly where the labelling is ambiguous — and averaging over that group
+removes all 14 failures. The production fix is to regenerate `u8_decomp.pkl`
+and `u8_decomp_all.pkl` summing over all `10P8 = 1,814,400` ordered injections
+per state, the convention the K7 cache already uses; Aut-averaging the existing
+tables is the equivalent cheap route.
+
+## 10. What would still be needed after the fix
+
+Repairing the decomposition makes the rows valid. It does **not** by itself
+produce a proof, and the remaining gap is the hard part.
+
+**a. The certificate must actually use the band.** A valid band certificate has
+to become false outside the band, because `U7` is exactly `2/25` at the `C5`
+blow-up (`d_edge = 0.4`). So at least one of `y0, y1` must be strictly
+positive. Any solve that returns `y0 = y1 = 0` is a build failure by
+construction, not a result.
+
+**b. The margin available on this route is of order 1e-5, not 1e-3.** With the
+certificate's own K7 pool, the K7 leg — which upper-bounds `eta` in every
+feasible point, repaired or not — evaluates on in-band graphons to:
+
+| graphon | `d_edge` | `d_mono` | K7 leg |
+|---|---|---|---|
+| Petersen | 0.3000 | 0.0600 | **-4.448e-05** |
+| `C5`, weights `1/4,1/4,1/12,1/3,1/12` | 0.3194 | 0.0417 | -1.443e-03 |
+| `C5`, weights `1/12,1/6,1/3,1/12,1/3` | 0.3056 | 0.0278 | -3.014e-03 |
+| `C5`, weights `1/6,1/6,1/12,1/2,1/12` | 0.2778 | 0.0278 | -5.459e-03 |
+
+Two things follow. First, weighted `C5` blow-ups are *not* the binding
+configurations — Petersen is thirty times closer to zero than the best of them,
+so any serious search has to sweep a far richer family than `C5` blow-ups.
+Second, at Petersen the envelope sits `4.4e-05` below `2/25` while the truth
+`d_mono` sits `2.0e-02` below: the 7-root envelope over-estimates `bip` by a
+factor of roughly 450 there. That is the same order of magnitude as the
+`+4.8558e-05` reported in arXiv:2606.28041, and it is about twenty times
+smaller than the `-9.88e-04` this certificate claims. Unless a repaired 8-root
+leg is strictly slacker than the 7-root leg at Petersen — which would be
+surprising, since larger roots make the envelope *smaller*, not larger — the
+claimed objective is unreachable for the repaired LP.
+
+**c. The open question this route turns on** is whether
+`sup{ U7(W) : W triangle-free, d_edge(W) in [0.2486, 0.3197] } < 2/25`. If it
+is, a strong enough finite relaxation can certify a negative objective and the
+conjecture follows. If it is not — if some in-band graphon drives the envelope
+to `2/25` or above — then no certificate at any order can give `delta < 0`, and
+the envelope has to be replaced, not strengthened. Settling this is the first
+thing worth computing, and it is cheap relative to another certificate run:
+evaluate `U7` (minimum over *all* profile rules per root, i.e. one weighted
+MaxCut instance per root type) on a wide family of in-band triangle-free
+graphons and look for the supremum.
+
+**d. If the envelope is capped, the sound alternative is the two-coloured flag
+algebra**: carry the max-cut colouring as part of the structure, so `d_mono` is
+a *linear* functional of coloured densities rather than an adaptive minimum,
+and add the local-optimality inequalities of the cut (no vertex improves the
+cut by flipping). That is the formulation Balogh, Clemen and Lidický use, it
+has no adaptivity leak, and it is the natural place to spend order-11 effort.
+
+**e. Independently of which route is taken, the following must accompany any
+future claim:**
+
+1. A written proof, with explicit quantifiers over labellings, that
+   `U_k(W) >= d_mono(W)` for the rows actually used.
+2. A written proof that the LP is a relaxation: exhibit the feasible primal
+   point `(q(W), eta = d_mono(W) - 2/25, u7, u8)` for an arbitrary band
+   graphon, and check that *both* legs admit that `eta`. The two legs currently
+   use different normalisations (K7 carries its `-2/25` internally and is
+   scaled by `1/10`; K8 subtracts `2/25` outside), which is what let the
+   optimiser park weight `1 - 1e-12` on one leg.
+3. A validity gate in the cutting-plane loop: no row enters the pool unless it
+   is nonnegative at a battery of exact graphon state vectors. This is the
+   single highest-value change — a separator that emits invalid rows will
+   always find a spurious optimum, and this one did.
+4. A precise citation of the Balogh–Clemen–Lidický theorem with matching
+   normalisation, and an explicit check that the closed band plus the open
+   tails cover every density.
+5. Either publish the generators for the four `public_flagsdp_data` files, or
+   add verifier-side structural checks — state catalogue, decomposition
+   completeness, PSD of the rooted pair densities — so the trust boundary
    matches what `README.md` describes.
+6. Drop `GLOBAL_CONCLUSION` from the verifier output, or demote it to what is
+   actually checked.
