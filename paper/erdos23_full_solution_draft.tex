@@ -1,0 +1,319 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=28mm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  pdftitle={An Exact Order-10 Certificate for the Erdős Triangle-Free Bipartization Conjecture},
+  pdfauthor={Author information omitted for review},
+  pdfsubject={A reproducible computer-assisted proof candidate for Erdős Problem 23},
+  pdfkeywords={Erdős Problem 23, triangle-free graph, MaxCut, flag algebra, exact certificate}
+}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newcommand{\bip}{\operatorname{bip}}
+\newcommand{\mc}{\operatorname{MaxCut}}
+\newcommand{\dmono}{d_{\mathrm{mono}}}
+\newcommand{\dedge}{d_{\mathrm{edge}}}
+
+\title{An Exact Order-10 Certificate for the\\
+Erd\H{o}s Triangle-Free Bipartization Conjecture}
+\author{Author information omitted for review}
+\date{Draft of 23 August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+For a graph $G$, let $\bip(G)=|E(G)|-\mc(G)$ be the minimum number of
+edges whose deletion makes $G$ bipartite.  We give an exact, independently
+replayable order-$10$ flag-algebra certificate which, combined with the
+per-root-MaxCut envelope and blow-up transfer of Ferudun and the density-tail
+theorem of Balogh, Clemen and Lidick\'y, proves
+\[
+  \bip(G)\le |V(G)|^2/25
+\]
+for every finite triangle-free graph $G$.  The new exact dual has objective
+$\delta_\star<-9/10000<0$.  It consists of
+$10{,}188$ finitely described K7, K8 and rooted-Horn rows, together with the
+public manifestly positive-semidefinite Gram functional.  A verifier rebuilds
+all $11{,}560{,}170$ nonzero matrix entries and checks every dual residual in
+exact rational arithmetic.  This manuscript and certificate are a draft for
+external review.
+\end{abstract}
+
+\section{Introduction}
+
+For a finite simple graph $G$, write
+\[
+  \bip(G)=\min\{|F|:F\subseteq E(G),\ G-F\text{ is bipartite}\}
+          =|E(G)|-\mc(G).
+\]
+Erd\H{o}s, Gy\H{o}ri and Simonovits asked whether every triangle-free graph
+$G$ on $N$ vertices satisfies
+\begin{equation}\label{eq:main}
+  \bip(G)\le \frac{N^2}{25}.
+\end{equation}
+The constant is sharp: for $N=5n$, the balanced blow-up $C_5[n]$ has
+$\bip(C_5[n])=n^2=N^2/25$.
+
+Balogh, Clemen and Lidick\'y proved the exact constant in low- and
+high-edge-density tails, and a slightly weaker general bound
+\cite{BCL}.  Ferudun developed an order-$10$ per-root-MaxCut/Horn/Gram
+certificate for the remaining middle-density band and, using integrality,
+proved the conjectured equality for balanced $C_5$ multiples through
+$N=200$ \cite{Ferudun}.  A later exact certificate extended this finite range
+through $N=240$.  The present note completes the same certificate route: an
+enlarged but still finite row pool has a strictly negative exact dual
+objective.  Consequently no integrality margin is needed.
+
+\begin{theorem}\label{thm:main}
+Every finite triangle-free graph $G$ on $N$ vertices satisfies
+\[
+  \bip(G)\le \frac{N^2}{25}.
+\]
+If $5\mid N$, equality is attained by the balanced blow-up of $C_5$.
+\end{theorem}
+
+\section{Blow-up transfer and the density split}
+
+For an integer $t\ge1$, let $G[t]$ be the graph obtained by replacing each
+vertex of $G$ by an independent set of size $t$ and every edge by the
+corresponding complete bipartite graph.
+
+\begin{lemma}[Ferudun]\label{lem:blowup}
+For every finite graph $G$ and every $t\ge1$,
+\[
+  \bip(G[t])=t^2\bip(G).
+\]
+\end{lemma}
+
+\begin{proof}
+The cut value of $G[t]$, divided by $t^2$, is a multilinear function of the
+fractions $x_v\in[0,1]$ of each twin class placed on one side.  A multilinear
+function on a cube attains its maximum at a vertex.  Thus an optimal cut is
+constant on every twin class, so $\mc(G[t])=t^2\mc(G)$.  Since
+$|E(G[t])|=t^2|E(G)|$, the assertion follows.
+\end{proof}
+
+Define
+\[
+  \dmono(G)=\frac{2\bip(G)}{N^2},\qquad
+  \dedge(G)=\frac{2|E(G)|}{N^2}.
+\]
+Lemma~\ref{lem:blowup} makes $\dmono$ blow-up invariant.  If $W_G$ is the
+step graphon of $G$, then
+\begin{equation}\label{eq:exact-transfer}
+  \dmono(W_G)=\frac{2\bip(G)}{N^2}
+\end{equation}
+exactly; there is no finite-size error.
+
+We use the closed middle band
+\[
+  \mathrm{LO}=\frac{1243}{5000}=0.2486,
+  \qquad
+  \mathrm{HI}=\frac{3197}{10000}=0.3197.
+\]
+Balogh, Clemen and Lidick\'y prove, for all sufficiently large orders, the
+bound~\eqref{eq:main} when the edge density lies below LO or above HI
+\cite[Theorem 1.3]{BCL}.  Applying their theorem to $G[t]$ and then using
+Lemma~\ref{lem:blowup} transfers both exact-constant tail bounds to every
+finite $G$ whose graphon-normalized density is strictly outside the closed
+middle band.  The two boundary values will be included in the certificate
+band.
+
+\section{The finite relaxation}
+
+We use the order-$10$ relaxation of \cite{Ferudun}.  Its probability vector
+$q=(q_s)$ is indexed by the $12{,}172$ triangle-free order-$10$ states and
+satisfies $q_s\ge0$, $\sum_s q_s=1$, and
+$\mathrm{LO}\le\langle e,q\rangle\le\mathrm{HI}$.  A fixed manifestly
+positive-semidefinite moment functional gives $\langle m,q\rangle\ge0$.
+
+For each of the $107$ triangle-free K7 root types and each Boolean profile
+rule $c$, the rule defines a genuine global two-coloring and hence a valid
+per-root MaxCut row.  The analogous K8 construction has $410$ root types.
+Writing $u^7_\sigma,u^8_\tau$ for the root envelope variables, the finite LP
+contains selected valid rows
+\[
+ u^7_\sigma\le \langle g_{\sigma,c},q\rangle,
+ \qquad
+ u^8_\tau\le \langle h_{\tau,c},q\rangle,
+\]
+together with
+\[
+ \eta\le\sum_\sigma u^7_\sigma,
+ \qquad
+ \eta\le-\frac{2}{25}+\sum_\tau u^8_\tau.
+\]
+It also contains rooted-Horn inequalities.  Their validity is the
+copositivity inequality
+\[
+  \left(\sum_{i=0}^4x_i\right)^2
+      -4\sum_{i=0}^4x_ix_{i+1}\ge0
+      \quad (x_i\ge0),
+\]
+with indices modulo $5$; equivalently it is the Motzkin-Straus inequality for
+$C_5$.  Every genuine band step graphon induces a feasible point.  Therefore
+the primal optimum upper-bounds
+$\dmono(W)-2/25$ on the band.  A feasible dual of objective $\delta$ proves
+\begin{equation}\label{eq:band-bound}
+  \dmono(W)\le\frac{2}{25}+\delta.
+\end{equation}
+Only dual feasibility, not numerical optimality, is needed.
+
+\section{The exact negative certificate}
+
+The new certificate uses the row counts in Table~\ref{tab:rows}.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lr}
+\toprule
+Row family & Number of rows\\
+\midrule
+K7 per-root MaxCut & 2,790\\
+K8 per-root MaxCut & 2,385\\
+Rooted Horn & 5,013\\
+\midrule
+Total & 10,188\\
+\bottomrule
+\end{tabular}
+\caption{Exact descriptor pool.}\label{tab:rows}
+\end{table}
+
+All non-mass multipliers are nonnegative integers over the common denominator
+$D=10^{12}$.  The static numerators, in the order high-density, low-density,
+fixed Gram, K7 leg and K8 leg, are
+\[
+  (0,0,53956267978680,1,999999999999).
+\]
+In particular, the envelope legs sum to $D$ exactly.  For every K7 root the
+sum of its rule multipliers is at least $1/D$, and for every K8 root it is at
+least $(D-1)/D$.  No root repair was needed after rationalization.
+
+Let $\rho$ be the exact maximum of the $12{,}172$ rational coordinate loads.
+The resulting exact dual objective is stored as a numerator-denominator pair
+in the certificate.  Direct integer comparison gives
+\begin{equation}\label{eq:negative}
+ \delta_\star
+ =-9.878886951679021\ldots\times10^{-4}
+ <-\frac{9}{10000}<0.
+\end{equation}
+The minimum q-coordinate residual is exactly zero, attained at state 46.
+Thus the certificate is exactly feasible and~\eqref{eq:band-bound} gives
+\begin{equation}\label{eq:strict-band}
+  \dmono(W)<\frac{2}{25}
+\end{equation}
+for every triangle-free step graphon in the closed middle band.
+
+\section{Independent exact replay}
+
+The primary certificate is a transparent JSON file.  The independent verifier
+does not import the LP generator and does not trust a stored floating matrix.
+It performs the following checks.
+
+\begin{enumerate}
+\item It validates all descriptor syntax and reconstructs every K7, K8 and
+Horn functional from exact finite combinatorial data.
+\item It builds an integer matrix of shape $10{,}188\times12{,}172$ with
+$11{,}560{,}170$ nonzero entries.
+\item It checks nonnegativity, the exact envelope-leg sum, and all 517
+per-root multiplier lower bounds.
+\item It computes the sparse transpose product by base-$100{,}000$ digit
+splitting, with an a priori signed-64-bit bound, and audits nine columns by
+direct Python-integer dot products.
+\item It reconstructs all coordinate loads and the objective as exact
+rational numbers and verifies that the minimum residual is zero and that
+$\delta_\star<0$.
+\end{enumerate}
+
+Separately, the fixed moment vector is reconstructed from 87 nonnegative
+rational rank-one Gram atoms and matches all $12{,}172$ coordinates exactly.
+Both the JSON and pickle certificate representations pass the replay.  The
+terminal output is
+\begin{verbatim}
+EXACT_DUAL_REPLAY_OK
+descriptors=10188 nnz=11560170 digits=3
+digit_product_audit=9/9
+min_q_residual=0 at state=46
+objective ~= -9.878886951679021e-04
+global_closure=True
+GLOBAL_CONCLUSION: beta(G)<=N^2/25 for every finite triangle-free graph
+\end{verbatim}
+
+\section{Proof of Theorem~\ref{thm:main}}
+
+Let $G$ be a triangle-free graph on $N$ vertices.
+
+If $\dedge(G)<\mathrm{LO}$ or $\dedge(G)>\mathrm{HI}$, the transferred
+Balogh-Clemen-Lidick\'y tail theorem gives $\bip(G)\le N^2/25$.
+
+Otherwise $\mathrm{LO}\le\dedge(G)\le\mathrm{HI}$.  Applying the exact band
+certificate to $W_G$ and using~\eqref{eq:exact-transfer} and
+\eqref{eq:negative},
+\[
+  \frac{2\bip(G)}{N^2}=\dmono(W_G)
+   \le\frac{2}{25}+\delta_\star
+   <\frac{2}{25}.
+\]
+Hence $\bip(G)<N^2/25$, which is stronger than the required inequality in the
+middle band.  These cases cover every possible density, including the two
+band boundaries.  Finally, $C_5[n]$ shows equality for $N=5n$.
+\qed
+
+\section{Reproducibility and status}
+
+The ancillary package contains the exact JSON and pickle certificates, the
+independent replay, the moment-vector verifier, the floating source dual, the
+descriptor pool, and scripts that regenerate the large K7 exact-count cache.
+The compact certificate archive omits that cache.  A separate full replay
+bundle includes the cache and all four public flag-data files needed by the
+verifiers; it is about 20 MB compressed and about 1.8 GB unpacked.  The public
+repository runs the full replay in continuous integration.
+
+The finite certificate and fixed Gram vector have been independently replayed
+inside the present computational environment in exact arithmetic.  At the
+time of writing, the argument has not received external peer review.  It
+should therefore be treated as a reproducible computer-assisted proof draft
+pending external verification.
+
+\begin{thebibliography}{9}
+
+\bibitem{BCL}
+J. Balogh, F. C. Clemen and B. Lidick\'y,
+\emph{Max cuts in triangle-free graphs},
+arXiv:2103.14179 (2021),
+\url{https://arxiv.org/abs/2103.14179}.
+
+\bibitem{Bloom}
+T. F. Bloom,
+\emph{Erd\H{o}s problem \#23},
+\url{https://www.erdosproblems.com/23}.
+
+\bibitem{EGS}
+P. Erd\H{o}s, E. Gy\H{o}ri and M. Simonovits,
+\emph{How many edges should be deleted to make a triangle-free graph
+bipartite?},
+Sets, Graphs and Numbers, Colloq. Math. Soc. J\'anos Bolyai 60,
+North-Holland (1992), 239--263.
+
+\bibitem{Ferudun}
+A. Ferudun,
+\emph{The Erd\H{o}s $n^2/25$ max-cut conjecture for small multiples of five,
+via a per-root-MaxCut envelope and blow-up integrality},
+arXiv:2606.28041v1 (2026),
+\url{https://arxiv.org/abs/2606.28041}.
+
+\bibitem{Razborov}
+A. A. Razborov,
+\emph{Flag algebras},
+J. Symbolic Logic 72 (2007), no. 4, 1239--1282.
+
+\end{thebibliography}
+
+\end{document}
