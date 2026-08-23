@@ -1,0 +1,357 @@
+{
+  "base": "grotzsch",
+  "weights": [
+    "10173/100000",
+    "9717/100000",
+    "8691/100000",
+    "5083/50000",
+    "1907/25000",
+    "8213/100000",
+    "459/6250",
+    "1169/12500",
+    "3021/25000",
+    "10443/100000",
+    "6189/100000"
+  ],
+  "d_edge": 0.319383596,
+  "d_mono": 0.060022877,
+  "in_band": true,
+  "settled_part": 1194.0449510456842,
+  "root_mass_term": 302.3473175507726,
+  "denominator": 181440,
+  "note": "leg7 = (settled_part - sum of the exported MaxCut values - root_mass_term) / denominator; leg7 > 0 kills the 7-root envelope route",
+  "leg7_if_local_search_is_exact": 3.1424181193015794e-05,
+  "leg7_lower_bound_from_sdp": -0.00013887629041298084,
+  "instances": [
+    {
+      "file": "root000_n128.rudy",
+      "root": 0,
+      "vertices": 128,
+      "edges": 1093,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 631.3025000521457,
+      "sdp_dual_upper_bound": 649.6740449903525,
+      "sdp_certified": true
+    },
+    {
+      "file": "root001_n096.rudy",
+      "root": 1,
+      "vertices": 96,
+      "edges": 610,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 29.64802730537978,
+      "sdp_dual_upper_bound": 31.350145482888763,
+      "sdp_certified": true
+    },
+    {
+      "file": "root002_n080.rudy",
+      "root": 2,
+      "vertices": 80,
+      "edges": 397,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 14.067643291417236,
+      "sdp_dual_upper_bound": 14.926283229323005,
+      "sdp_certified": true
+    },
+    {
+      "file": "root003_n072.rudy",
+      "root": 3,
+      "vertices": 72,
+      "edges": 304,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 8.81116245754732,
+      "sdp_dual_upper_bound": 9.393792362676782,
+      "sdp_certified": true
+    },
+    {
+      "file": "root004_n068.rudy",
+      "root": 4,
+      "vertices": 68,
+      "edges": 265,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 8.11512432846624,
+      "sdp_dual_upper_bound": 8.673064671330248,
+      "sdp_certified": true
+    },
+    {
+      "file": "root005_n066.rudy",
+      "root": 5,
+      "vertices": 66,
+      "edges": 280,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 12.330334592161856,
+      "sdp_dual_upper_bound": 13.177539054095716,
+      "sdp_certified": true
+    },
+    {
+      "file": "root006_n065.rudy",
+      "root": 6,
+      "vertices": 65,
+      "edges": 428,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 91.6531363664212,
+      "sdp_dual_upper_bound": 94.66945685827082,
+      "sdp_certified": true
+    },
+    {
+      "file": "root015_n056.rudy",
+      "root": 15,
+      "vertices": 56,
+      "edges": 228,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 6.631953876790698,
+      "sdp_dual_upper_bound": 7.067145659448643,
+      "sdp_certified": true
+    },
+    {
+      "file": "root014_n050.rudy",
+      "root": 14,
+      "vertices": 50,
+      "edges": 208,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 6.158755738796995,
+      "sdp_dual_upper_bound": 6.481649182786841,
+      "sdp_certified": true
+    },
+    {
+      "file": "root024_n044.rudy",
+      "root": 24,
+      "vertices": 44,
+      "edges": 166,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 3.904546260287109,
+      "sdp_dual_upper_bound": 4.1262618669013245,
+      "sdp_certified": true
+    },
+    {
+      "file": "root025_n044.rudy",
+      "root": 25,
+      "vertices": 44,
+      "edges": 157,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 4.330144273460851,
+      "sdp_dual_upper_bound": 4.61997557562653,
+      "sdp_certified": true
+    },
+    {
+      "file": "root022_n042.rudy",
+      "root": 22,
+      "vertices": 42,
+      "edges": 165,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 3.734309978427933,
+      "sdp_dual_upper_bound": 3.980337144881435,
+      "sdp_certified": true
+    },
+    {
+      "file": "root030_n038.rudy",
+      "root": 30,
+      "vertices": 38,
+      "edges": 139,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 2.8198469685552072,
+      "sdp_dual_upper_bound": 3.021694335615032,
+      "sdp_certified": true
+    },
+    {
+      "file": "root031_n038.rudy",
+      "root": 31,
+      "vertices": 38,
+      "edges": 132,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 4.709746833466061,
+      "sdp_dual_upper_bound": 5.019305399531327,
+      "sdp_certified": true
+    },
+    {
+      "file": "root007_n037.rudy",
+      "root": 7,
+      "vertices": 37,
+      "edges": 114,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.0417336799561694,
+      "sdp_dual_upper_bound": 1.1006435496006228,
+      "sdp_certified": true
+    },
+    {
+      "file": "root033_n036.rudy",
+      "root": 33,
+      "vertices": 36,
+      "edges": 123,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 2.5432470810186554,
+      "sdp_dual_upper_bound": 2.742191345288035,
+      "sdp_certified": true
+    },
+    {
+      "file": "root034_n035.rudy",
+      "root": 34,
+      "vertices": 35,
+      "edges": 218,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 22.05251503035355,
+      "sdp_dual_upper_bound": 22.877393544637545,
+      "sdp_certified": true
+    },
+    {
+      "file": "root066_n032.rudy",
+      "root": 66,
+      "vertices": 32,
+      "edges": 113,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 2.3771753069273767,
+      "sdp_dual_upper_bound": 2.532879934978894,
+      "sdp_certified": true
+    },
+    {
+      "file": "root008_n031.rudy",
+      "root": 8,
+      "vertices": 31,
+      "edges": 99,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.017305071857196,
+      "sdp_dual_upper_bound": 1.0655036353513156,
+      "sdp_certified": true
+    },
+    {
+      "file": "root012_n031.rudy",
+      "root": 12,
+      "vertices": 31,
+      "edges": 99,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.1073712199859562,
+      "sdp_dual_upper_bound": 1.1559186980698724,
+      "sdp_certified": true
+    },
+    {
+      "file": "root063_n030.rudy",
+      "root": 63,
+      "vertices": 30,
+      "edges": 105,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 2.527255056504385,
+      "sdp_dual_upper_bound": 2.6791779630848813,
+      "sdp_certified": true
+    },
+    {
+      "file": "root085_n030.rudy",
+      "root": 85,
+      "vertices": 30,
+      "edges": 94,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 3.0250338435921176,
+      "sdp_dual_upper_bound": 3.23091513921719,
+      "sdp_certified": true
+    },
+    {
+      "file": "root023_n029.rudy",
+      "root": 23,
+      "vertices": 29,
+      "edges": 93,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.003345151572268,
+      "sdp_dual_upper_bound": 1.0469898225241543,
+      "sdp_certified": true
+    },
+    {
+      "file": "root064_n029.rudy",
+      "root": 64,
+      "vertices": 29,
+      "edges": 102,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.8634335047453687,
+      "sdp_dual_upper_bound": 1.9973208071399051,
+      "sdp_certified": true
+    },
+    {
+      "file": "root084_n027.rudy",
+      "root": 84,
+      "vertices": 27,
+      "edges": 96,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.682200811632148,
+      "sdp_dual_upper_bound": 1.7974042846190117,
+      "sdp_certified": true
+    },
+    {
+      "file": "root083_n026.rudy",
+      "root": 83,
+      "vertices": 26,
+      "edges": 88,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.753617055698592,
+      "sdp_dual_upper_bound": 1.8750313888273833,
+      "sdp_certified": true
+    },
+    {
+      "file": "root086_n026.rudy",
+      "root": 86,
+      "vertices": 26,
+      "edges": 85,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.7990275976912338,
+      "sdp_dual_upper_bound": 1.9281605179919308,
+      "sdp_certified": true
+    },
+    {
+      "file": "root010_n025.rudy",
+      "root": 10,
+      "vertices": 25,
+      "edges": 77,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 0.8592334810153235,
+      "sdp_dual_upper_bound": 0.8973619653981308,
+      "sdp_certified": true
+    },
+    {
+      "file": "root088_n024.rudy",
+      "root": 88,
+      "vertices": 24,
+      "edges": 78,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.535990954797975,
+      "sdp_dual_upper_bound": 1.6536328623333225,
+      "sdp_certified": true
+    },
+    {
+      "file": "root032_n023.rudy",
+      "root": 32,
+      "vertices": 23,
+      "edges": 65,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 0.6439498855285775,
+      "sdp_dual_upper_bound": 0.6718352001095003,
+      "sdp_certified": true
+    },
+    {
+      "file": "root089_n023.rudy",
+      "root": 89,
+      "vertices": 23,
+      "edges": 158,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 9.009799662751918,
+      "sdp_dual_upper_bound": 9.386263633678597,
+      "sdp_certified": true
+    },
+    {
+      "file": "root105_n023.rudy",
+      "root": 105,
+      "vertices": 23,
+      "edges": 78,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 1.3772161323779766,
+      "sdp_dual_upper_bound": 1.4854752206375739,
+      "sdp_certified": true
+    },
+    {
+      "file": "root009_n021.rudy",
+      "root": 9,
+      "vertices": 21,
+      "edges": 58,
+      "weight_scale": 1000000000000,
+      "local_search_lower_bound": 0.5593472079200003,
+      "sdp_dual_upper_bound": 0.5905523002258483,
+      "sdp_certified": true
+    }
+  ]
+}
