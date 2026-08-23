@@ -1,0 +1,12 @@
+# Transcript of review/count_coloured_flags.py (see ROADMAP.md section 5).
+
+  n  triangle-free   2-coloured    growth
+  1              1            1             [0s]
+  2              2            4      4.0x   [0s]
+  3              3            8      2.0x   [0s]
+  4              7           32      4.0x   [0s]
+  5             14          106      3.3x   [0s]
+  6             38          538      5.1x   [0s]
+  7            107         3111      5.8x   [0s]
+  8            410        25143      8.1x   [0s]
+  9           1897       265407     10.6x   [3s]

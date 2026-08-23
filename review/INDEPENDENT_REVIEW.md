@@ -311,6 +311,9 @@ independently built order-9 vector.
 `check_row_validity.py` reuses the verifier's row reconstruction verbatim, so a
 disagreement is a disagreement with the certificate, not with a re-implementation.
 
+> For what a route to an unconditional proof would have to look like, and what
+> each candidate route costs, see [`ROADMAP.md`](ROADMAP.md).
+
 ## 9. Root cause, and a fix that is verified to work
 
 `u8_decomp*.pkl` stores exactly **90 contributions per order-10 state** — 45
