@@ -1,0 +1,22 @@
+# Transcript of review/rebuild_u8.py — the 8-root decomposition rebuilt from scratch.
+# (see ROADMAP.md section 3b)
+
+order-9 catalogue: 1897 graphs
+reloaded rebuilt decomposition from .work/u8_rebuilt.pkl
+rebuilt decomposition: 320476 ordered (edge, root) incidences
+|Aut| over the 410 types: min 1, max 40320
+
+--- acid test: the balanced C5 blow-up, where U8 must be exactly 2/25 ---
+d_edge = 0.400000   d_mono = 0.080000
+rebuilt U8 = 0.080000000   target 2/25 = 0.080000000   error -5.551e-17
+rebuild validated.
+
+--- U8 inside the band ---
+     graphon    d_edge    d_mono          U8     U8-2/25   valid  useful
+    Grotzsch  0.319384  0.060023    0.068542   -0.011458    True    True
+    Petersen  0.300000  0.060000    0.060653   -0.019347    True    True
+
+largest U8 seen in the band: 0.068542   2/25 = 0.080000
+The 8-root envelope clears 2/25 at these points.
+
+total 77s

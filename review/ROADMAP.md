@@ -151,35 +151,60 @@ tf9#1329(dmono-max)        0.3186  0.063394    0.039917    0.056820
 balanced C5 (control)      0.4000  0.080000    0.055756    0.072201
 ```
 
-Two readings, and the second is the important one.
+Two readings. The repair does most of the work — at `C5` it lifts `U8` from
+`0.0558` to `0.0722`, and the total pair mass reproduces `d_edge = 0.400000000`
+exactly, so the decomposition is complete as a count and the defect really is in
+the profile labels. But it is not enough: at `C5` the patched value is still
+`9.75%` below the `0.08` validity forces. The tables had to be **rebuilt**, not
+patched.
 
-* The repair does most of the work. At `C5` it lifts `U8` from `0.0558` — 30%
-  below the value validity demands — to `0.0722`, and the total pair mass
-  reproduces `d_edge = 0.400000000` exactly, so the decomposition is complete
-  as a count. The defect really is in the profile labels.
-* **It is not enough.** At `C5` the repaired `U8` is still `9.75%` below the
-  `0.08` it must equal, and it falls below `d_mono` at seven of the nine in-band
-  points. So the shipped tables carry a defect beyond the automorphism twist,
-  and `u8_decomp.pkl` has to be **regenerated** — summing over all
-  `10P8 = 1,814,400` ordered injections per state, the convention the K7 cache
-  already uses with `9P7` — not patched.
+`review/rebuild_u8.py` does that, trusting nothing that ships with the
+certificate. It re-derives the order-10 catalogue by extension from the 1,897
+order-9 graphs (**12,172**, as required), identifies it with the certificate's
+state numbering through the vertex-deletion profiles (a **bijection**, as
+required), rebuilds the 107 order-7 and 410 order-8 root types, and for every
+order-10 state and every edge computes the root, its type, an explicit
+isomorphism to that type, and the two endpoint profiles under it — then averages
+over `Aut(tau)`, which is exactly the sum over all isomorphisms the shipped data
+gets wrong. 320,476 ordered (edge, root) incidences.
 
-Which leaves the decisive question open but cheap: **is a correctly generated
-`U8` below `2/25` inside the band?** The repaired estimates sit around `0.064`
-at the Grotzsch point and carry roughly a 10% downward bias (calibrated at
-`C5`), so the true value is plausibly near `0.071` against the `0.080` needed —
-suggestive, not decisive. Regenerating the decomposition and re-running
-`review/u8_envelope.py` settles it, and that is far less work than building the
-coloured flag algebra below.
+The acid test is the balanced `C5` blow-up, where `d_mono = U7 = 2/25` forces
+`U8 = 2/25` exactly:
+
+```
+rebuilt U8 = 0.080000000   target 2/25 = 0.080000000   error -5.551e-17
+```
+
+Machine epsilon. The rebuild is correct, and the shipped tables are definitively
+wrong. With it:
+
+```
+     graphon    d_edge    d_mono          U8     U8 - 2/25   valid  useful
+    Grotzsch  0.319384  0.060023    0.068542   -0.011458    True    True
+    Petersen  0.300000  0.060000    0.060653   -0.019347    True    True
+```
+
+At the very graphon where the 7-root envelope is provably **above** `2/25` (§3),
+the correctly rebuilt 8-root envelope clears it by `0.0115`; at Petersen it sits
+`1.1%` above `d_mono`, i.e. nearly tight. **The envelope route is alive at eight
+roots.** That is what the repository was reaching for, and the only thing that
+was wrong with it was the data.
 
 Order of operations, then:
 
-1. regenerate `u8_decomp.pkl` and `u8_decomp_all.pkl` over all injections;
-2. gate them: rooted pair densities PSD at the test graphons, `U8 >= d_mono` at
-   all of them, `U8 = 2/25` at the balanced `C5` blow-up;
-3. scan `sup U8` over the band. If it is below `2/25` with margin, build the LP
-   with positive weight on a band row and rationalise the dual;
-4. only if that fails, go to §4.
+1. ~~regenerate the decomposition~~ — done, `review/rebuild_u8.py`, validated at
+   `C5` to machine epsilon;
+2. scan `sup U8` over the band properly. Two points are not a band: hill-climb
+   the weights to *maximise* `U8` over every base, as `band_ceiling.py` does for
+   `d_mono`, and confirm the supremum stays under `2/25`;
+3. build the order-10 LP on the rebuilt rows, with positive dual weight on a
+   band row, and check the objective lands at or below zero;
+4. rationalise the dual and verify it in exact arithmetic, with the row-validity
+   gate of §6 wired into the generator;
+5. write the interfaces up as proofs: validity of the 8-root envelope with
+   explicit quantifiers over labellings, the primal-feasibility argument, and
+   the citation of the density-tail theorem with matching normalisation;
+6. only if step 2 or 3 fails, go to §4.
 
 ## 4. Fallback — the two-coloured flag algebra
 
