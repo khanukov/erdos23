@@ -14,6 +14,7 @@ Primal rows, written as `<row, x> <= rhs`:
     (R_i) u_tau - <h_i, q>  <= 0             z_i  >= 0
     (H_j) -<horn_j, q>      <= 0             w_j  >= 0
     (P_k) -<psd_k, q>       <= 0             v_k  >= 0
+    (Q_l) -<rpsd_l, q>      <= 0             t_l  >= 0   (v^T M_tau(q) v >= 0)
     (M)   sum q              = 1             rho free
 
 Summing with these multipliers, and using `u >= 0`, `q >= 0`, gives `eta <= delta`
@@ -127,12 +128,16 @@ def main() -> int:
     # normalise so the eta coefficient is exactly one
     scale = 1 / y_L
     y_hi, y_lo, y_g = y_hi * scale, y_lo * scale, y_g * scale
+    # HiGHS (minimisation): a row at its upper bound carries a dual <= 0, a row at
+    # its lower bound a dual >= 0.  Rule rows are `<= 0`, Horn and PSD rows `>= 0`.
     multipliers = []
     for index, (kind, _a, _b) in enumerate(rows_log):
         if kind in ("band", "gram", "mass", "leg8"):
             multipliers.append(Fraction(0))
-        else:
+        elif kind == "rule":
             multipliers.append(max(Fraction(0), -rational(duals[index])) * scale)
+        else:
+            multipliers.append(max(Fraction(0), rational(duals[index])) * scale)
 
     # every root's rule multipliers must sum to at least one
     per_root = {}
@@ -156,7 +161,7 @@ def main() -> int:
     load = [Fraction(0)] * N10
     for s in range(N10):
         load[s] = y_g * gram[s] - (y_hi - y_lo) * d_edge[s]
-    n_rule = n_horn = n_psd = 0
+    n_rule = n_horn = n_psd = n_rpsd = 0
     for index, (kind, a, b) in enumerate(rows_log):
         mult = multipliers[index]
         if mult == 0 or kind in ("band", "gram", "mass", "leg8"):
@@ -187,6 +192,18 @@ def main() -> int:
                 for s, cnt in rows[o].items():
                     load[s] += coeff * cnt
             n_horn += 1
+        elif kind == "rpsd":
+            root = all_roots[a]
+            v = [rational(x, 10 ** 6) for x in b]
+            rows = orbit_rows(root, ("a", a))
+            for o, (ma, mb) in enumerate(zip(root.member_a, root.member_b)):
+                total = sum(v[i] * v[j] for i, j in zip(ma.tolist(), mb.tolist()))
+                if total == 0:
+                    continue
+                coeff = mult * total / (90 * len(ma))
+                for s, cnt in rows[o].items():
+                    load[s] += coeff * cnt
+            n_rpsd += 1
         elif kind == "psd":
             block_index, vec = b
             label, mats, den = moment_blocks[block_index]
@@ -203,10 +220,6 @@ def main() -> int:
                     inner = sum(int(row_i[j]) * v[j] for j in range(k) if v[j] != 0)
                     acc += v[i] * inner
                 w.append(acc / den[s9])
-            for s9 in range(N9):
-                if w[s9] == 0:
-                    continue
-                start, end = deletion.tocsr().indptr[s9], deletion.tocsr().indptr[s9 + 1]
             # lift through the deletion matrix (counts / 10)
             D = deletion.tocsr()
             for s9 in range(N9):
@@ -221,7 +234,7 @@ def main() -> int:
                   flush=True)
     rho = max(load)
     delta = y_hi * HI - y_lo * LO - Fraction(2, 25) + rho
-    print(f"\nrows used: {n_rule} rules, {n_horn} Horn, {n_psd} PSD")
+    print(f"\nrows used: {n_rule} rules, {n_horn} Horn, {n_psd} PSD, {n_rpsd} root-PSD")
     print(f"rho (largest load) = {float(rho):+.12e}")
     print(f"delta exact        = {delta}")
     print(f"delta              = {float(delta):+.12e}")
