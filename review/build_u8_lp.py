@@ -321,6 +321,12 @@ def main() -> int:
                         help="add eigenvector cuts from the order-9 moment matrices")
     parser.add_argument("--horn-per-root", type=int, default=3)
     parser.add_argument("--time-limit", type=float, default=2400.0)
+    parser.add_argument("--max-rules", type=int, default=150, help="rule rows added per iteration")
+    parser.add_argument("--max-horn", type=int, default=150, help="Horn rows added per iteration")
+    parser.add_argument("--drop-after", type=int, default=3,
+                        help="drop a non-static row after this many consecutive slack solves")
+    parser.add_argument("--checkpoint", type=Path, default=None)
+    parser.add_argument("--resume", type=Path, default=None)
     args = parser.parse_args()
     started = time.time()
 
@@ -400,6 +406,16 @@ def main() -> int:
 
     pool = {r.tau: [] for r in live}
     rows_log = [("band", None, None), ("gram", None, None), ("mass", None, None), ("leg8", None, None)]
+    slack = [0, 0, 0, 0]
+    root_by_tau = {r.tau: r for r in live}
+    horn_by_tau = {r.tau: r for r in horn_roots}
+
+    def checkpoint(eta, x, duals):
+        if args.checkpoint:
+            with args.checkpoint.open("wb") as handle:
+                pickle.dump({"eta": eta, "q": x[:N10],
+                             "u": {r.tau: float(x[col_u[r.tau]]) for r in live},
+                             "duals": duals, "rows": rows_log, "col_u": col_u}, handle)
 
     def add_rule(r, colouring):
         row = r.rule_row(colouring)
@@ -408,23 +424,50 @@ def main() -> int:
                 np.concatenate([-row[nz], [1.0]]), -INF, 0.0)
         pool[r.tau].append(np.asarray(colouring, dtype=np.int8))
         rows_log.append(("rule", r.tau, np.asarray(colouring, dtype=np.int8)))
+        slack.append(0)
 
-    for r in live:
-        add_rule(r, np.zeros(r.width, dtype=np.int8))
     seeds = [("C5", cycle(5), np.full(5, 0.2)),
              ("Grotzsch", grotzsch(), np.asarray(
                  [10173, 9717, 8691, 10166, 7628, 8213, 7344, 9352, 12084, 10443, 6189], float)),
              ("Petersen", petersen(), np.full(10, 0.1))]
     seed_vectors = []
     for name, base, w in seeds:
-        q = q10_of(cat9, profile_to_state, base, w / w.sum())
-        seed_vectors.append((name, q))
-        added = 0
+        seed_vectors.append((name, q10_of(cat9, profile_to_state, base, w / w.sum())))
+    if args.resume and args.resume.exists():
+        with args.resume.open("rb") as handle:
+            saved = pickle.load(handle)
+        restored = 0
+        for kind, a, b in saved["rows"]:
+            if kind == "rule":
+                add_rule(root_by_tau[a], np.asarray(b, dtype=np.int8))
+            elif kind == "horn":
+                row = horn_by_tau[a].form_row(horn_by_tau[a].horn_coefficients(list(b)))
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("horn", a, list(b)))
+                slack.append(0)
+            elif kind == "psd":
+                block_index, vec = b
+                row = moments.cut_row(block_index, np.asarray(vec))
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("psd", a, (block_index, np.asarray(vec))))
+                slack.append(0)
+            else:
+                continue
+            restored += 1
+        print(f"resumed {restored} rows from {args.resume} (eta was {saved['eta']:+.6e})"
+              f"  [{time.time() - started:.0f}s]", flush=True)
+    else:
         for r in live:
-            colouring, _ = r.best_rule(q, rng, args.starts)
-            add_rule(r, colouring)
-            added += 1
-        print(f"seeded {added} rules from {name}  [{time.time() - started:.0f}s]", flush=True)
+            add_rule(r, np.zeros(r.width, dtype=np.int8))
+        for name, q in seed_vectors:
+            added = 0
+            for r in live:
+                colouring, _ = r.best_rule(q, rng, args.starts)
+                add_rule(r, colouring)
+                added += 1
+            print(f"seeded {added} rules from {name}  [{time.time() - started:.0f}s]", flush=True)
 
     # ---- cutting planes ------------------------------------------------------
     history = []
@@ -434,33 +477,59 @@ def main() -> int:
         sol = h.getSolution()
         x = np.asarray(sol.col_value)
         q, eta = x[:N10], float(x[col_eta])
-        added = 0
-        worst = 0.0
+        duals_now = np.asarray(sol.row_dual)
+        checkpoint(eta, x, duals_now)
+        # drop rows that have been slack for several consecutive solves
+        for i in range(len(rows_log)):
+            if abs(duals_now[i]) < 1e-12:
+                slack[i] += 1
+            else:
+                slack[i] = 0
+        droppable = [i for i in range(4, len(rows_log))
+                     if slack[i] >= args.drop_after
+                     and not (rows_log[i][0] == "rule" and not np.any(rows_log[i][2]))]
+        if droppable:
+            h.deleteRows(len(droppable), np.asarray(droppable, dtype=np.int32))
+            keep = [i for i in range(len(rows_log)) if i not in set(droppable)]
+            rows_log[:] = [rows_log[i] for i in keep]
+            slack[:] = [slack[i] for i in keep]
+            for tau in pool:
+                pool[tau] = [c for (k, t, c) in rows_log if k == "rule" and t == tau]
+        candidates = []
         for r in live:
             u_star = float(x[col_u[r.tau]])
             colouring, value = r.best_rule(q, rng, args.starts)
             if value < u_star - 1e-9:
-                add_rule(r, colouring)
-                added += 1
-                worst = max(worst, u_star - value)
+                candidates.append((u_star - value, r, colouring))
+        candidates.sort(key=lambda t: -t[0])
+        added = 0
+        worst = candidates[0][0] if candidates else 0.0
+        for viol, r, colouring in candidates[:args.max_rules]:
+            add_rule(r, colouring)
+            added += 1
         horns = 0
         horn_worst = 0.0
+        horn_candidates = []
         for r in horn_roots:
             val, cyc = r.horn_search(q, rng, args.horn_restarts)
             if cyc is None:
                 continue
             for val, cyc in r.last_cycles[:args.horn_per_root]:
-                row = r.form_row(r.horn_coefficients(cyc))
-                for name, qs in seed_vectors:            # validity gate
-                    check = float(row @ qs)
-                    if check < -1e-12:
-                        raise RuntimeError(f"INVALID Horn row at root {r.tau}: "
-                                           f"value {check:+.3e} at {name}")
-                nz = np.nonzero(row)[0]
-                add_row(nz, row[nz], 0.0, INF)
-                rows_log.append(("horn", r.tau, list(cyc)))
-                horns += 1
-                horn_worst = min(horn_worst, val)
+                horn_candidates.append((val, r, cyc))
+        horn_candidates.sort(key=lambda t: t[0])
+        for val, r, cyc in horn_candidates[:args.max_horn]:
+            row = r.form_row(r.horn_coefficients(cyc))
+            for name, qs in seed_vectors:            # validity gate
+                check = float(row @ qs)
+                if check < -1e-12:
+                    raise RuntimeError(f"INVALID Horn row at root {r.tau}: "
+                                       f"value {check:+.3e} at {name}")
+            nz = np.nonzero(row)[0]
+            add_row(nz, row[nz], 0.0, INF)
+            rows_log.append(("horn", r.tau, list(cyc)))
+            slack.append(0)
+            horns += 1
+            horn_worst = min(horn_worst, val)
         psd_cuts = 0
         psd_worst = 0.0
         if moments is not None:
@@ -472,13 +541,14 @@ def main() -> int:
                 nz = np.nonzero(row)[0]
                 add_row(nz, row[nz], 0.0, INF)
                 rows_log.append(("psd", label, vec))
+                slack.append(0)
                 psd_cuts += 1
                 psd_worst = min(psd_worst, lam)
         history.append((it, eta, added, horns, psd_cuts))
         print(f"iter {it:3d}: status={status} eta={eta:+.6e} band={d_edge @ q:.4f} "
-              f"rules added={added} (max viol {worst:.2e}) horn rows added={horns} "
-              f"(worst {horn_worst:+.2e}) psd cuts={psd_cuts} (min eig {psd_worst:+.2e}) "
-              f"pool={sum(map(len, pool.values()))}  [{time.time() - started:.0f}s]", flush=True)
+              f"rules +{added} (viol {worst:.1e}) horn +{horns} ({horn_worst:+.1e}) "
+              f"psd +{psd_cuts} ({psd_worst:+.1e}) dropped {len(droppable)} "
+              f"rows={len(rows_log)}  [{time.time() - started:.0f}s]", flush=True)
         if added == 0 and horns == 0 and psd_cuts == 0:
             print("no violated rows found: converged for these families", flush=True)
             break

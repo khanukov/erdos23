@@ -1,0 +1,25 @@
+# build_u8_lp.py, run 3: K8 rules + Horn rows + PSD eigenvector cuts, all gated at C5/Grotzsch/Petersen.
+# Stopped by the 3500 s wall clock at iteration 15; the LP had grown to ~15k nearly-dense rows.
+
+all-pairs data: 410 types; all-ones check max |sum - 1| = 6.661e-16  [58s]
+root data: 410 live types, closure widths up to 256, orbits up to 1791  [58s]
+constant-rule check: max |sum_tau h_const - d_edge| = 1.110e-16
+seeded 410 rules from C5  [63s]
+seeded 410 rules from Grotzsch  [76s]
+seeded 410 rules from Petersen  [83s]
+iter   0: eta=+2.397000e-01 band=0.3197 rules added=15 (max viol 6.12e-02) horn rows added=48 (worst -4.08e-02) psd cuts=12 (min eig -1.27e-03) pool=1655  [85s]
+iter   1: eta=+2.397000e-01 band=0.3197 rules added=69 (max viol 2.56e-02) horn rows added=250 (worst -5.02e-02) psd cuts=12 (min eig -9.19e-04) pool=1724  [88s]
+iter   2: eta=+2.397000e-01 band=0.3197 rules added=41 (max viol 3.66e-02) horn rows added=126 (worst -3.81e-02) psd cuts=11 (min eig -5.13e-04) pool=1765  [90s]
+iter   3: eta=+2.283397e-01 band=0.3197 rules added=48 (max viol 2.78e-02) horn rows added=135 (worst -2.09e-02) psd cuts=12 (min eig -4.42e-04) pool=1813  [94s]
+iter   4: eta=+2.163650e-01 band=0.3197 rules added=92 (max viol 1.63e-02) horn rows added=299 (worst -1.76e-02) psd cuts=11 (min eig -1.61e-04) pool=1905  [100s]
+iter   5: eta=+2.047599e-01 band=0.3197 rules added=125 (max viol 1.50e-02) horn rows added=421 (worst -2.00e-02) psd cuts=11 (min eig -9.74e-05) pool=2030  [111s]
+iter   6: eta=+1.910465e-01 band=0.3130 rules added=131 (max viol 9.79e-03) horn rows added=426 (worst -1.34e-02) psd cuts=11 (min eig -1.90e-04) pool=2161  [122s]
+iter   7: eta=+1.804887e-01 band=0.2964 rules added=142 (max viol 9.51e-03) horn rows added=460 (worst -2.17e-02) psd cuts=11 (min eig -9.18e-05) pool=2303  [138s]
+iter   8: eta=+1.694415e-01 band=0.2988 rules added=295 (max viol 9.46e-03) horn rows added=966 (worst -9.72e-03) psd cuts=12 (min eig -6.58e-05) pool=2598  [179s]
+iter   9: eta=+1.528973e-01 band=0.2719 rules added=316 (max viol 6.86e-03) horn rows added=1032 (worst -9.38e-03) psd cuts=12 (min eig -1.25e-04) pool=2914  [238s]
+iter  10: eta=+1.342149e-01 band=0.2832 rules added=368 (max viol 7.84e-03) horn rows added=1151 (worst -7.46e-03) psd cuts=11 (min eig -4.85e-05) pool=3282  [324s]
+iter  11: eta=+1.142187e-01 band=0.2649 rules added=399 (max viol 5.14e-03) horn rows added=1192 (worst -6.52e-03) psd cuts=11 (min eig -6.80e-05) pool=3681  [482s]
+iter  12: eta=+9.581665e-02 band=0.2670 rules added=398 (max viol 4.69e-03) horn rows added=1211 (worst -7.01e-03) psd cuts=11 (min eig -3.58e-05) pool=4079  [705s]
+iter  13: eta=+7.923944e-02 band=0.2746 rules added=405 (max viol 2.35e-03) horn rows added=1214 (worst -2.48e-03) psd cuts=12 (min eig -2.45e-05) pool=4484  [1064s]
+iter  14: eta=+6.591829e-02 band=0.2773 rules added=408 (max viol 1.51e-03) horn rows added=1220 (worst -1.59e-03) psd cuts=11 (min eig -1.88e-05) pool=4892  [1615s]
+iter  15: eta=+5.638904e-02 band=0.2753 rules added=408 (max viol 1.50e-03) horn rows added=1210 (worst -1.51e-03) psd cuts=11 (min eig -1.11e-05) pool=5300  [2517s]

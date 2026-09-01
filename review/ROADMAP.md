@@ -206,6 +206,45 @@ Order of operations, then:
    the citation of the density-tail theorem with matching normalisation;
 6. only if step 2 or 3 fails, go to §4.
 
+## 3c. The LP on the rebuilt rows — first runs
+
+`review/build_u8_lp.py` builds the order-10 band LP on the rebuilt 8-root rows
+and grows it by cutting planes: K8 rules by weighted MaxCut at each optimum,
+rooted-Horn 5-cycles by local search on the all-pairs decomposition
+(`review/rebuild_u8_allpairs.py`, 1,095,480 incidences), and PSD cuts from the
+most negative eigenvectors of the order-9 flag moment matrices lifted through
+the deletion map. Every Horn row and PSD cut is gated — it must be nonnegative
+at the `C5`, Grotzsch and Petersen state vectors before it enters — so the
+mistake that sank the shipped certificate cannot recur silently. The orbit
+bookkeeping reproduces `d_edge` from the constant rule to `1e-16`, and the
+moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
+`-9e-4`) at a weak LP optimum, so the cuts have something to bite on.
+
+| run | families | iterations | `eta` |
+|---|---|---:|---:|
+| 1 | band, mass, fixed Gram row, K8 rules | 40 | `+0.2157` |
+| 2 | + Horn rows | 60 | `+0.1818` |
+| 3 | + PSD eigenvector cuts | 15 (wall clock) | `+0.0564`, still falling |
+
+Run 3's trajectory — `0.2397, 0.2283, 0.2048, 0.1805, 0.1529, 0.1342, 0.1142,
+0.0958, 0.0792, 0.0659, 0.0564` — is the first time this LP has been seen to
+head toward zero, and it says two things. The fixed Gram row on its own is
+nearly useless (run 1: `q` simply piles onto the densest states); the strength
+is in the Horn rows and, above all, in letting the LP choose its own PSD
+combinations rather than inheriting one vector. And the obstacle is now
+engineering, not mathematics: the rows are nearly dense over 12,172 columns,
+run 3 had reached ~15,000 of them, and the fifteenth solve took a quarter of an
+hour. The current run adds per-iteration checkpoints, capped additions, and
+dropping of rows that stay slack, and resumes across wall-clock limits.
+
+What a negative `eta` would and would not mean, stated before the number is
+in: it would be a floating-point LP certificate over row families each of
+which is valid by construction, i.e. the strongest computer evidence for the
+band so far, and `review/verify_u8_certificate.py` turns it into an exact
+rational `delta` from integer data. It would still not be a theorem until the
+row validities and the primal-feasibility argument are written as proofs and
+the tail theorem is cited with matching normalisation (§7).
+
 ## 4. Fallback — the two-coloured flag algebra
 
 The fallback if §3b fails, and the formulation Balogh–Clemen–Lidický already use.
