@@ -325,6 +325,16 @@ def main() -> int:
     parser.add_argument("--max-horn", type=int, default=150, help="Horn rows added per iteration")
     parser.add_argument("--drop-after", type=int, default=3,
                         help="drop a non-static row after this many consecutive slack solves")
+    parser.add_argument("--root-psd", action="store_true",
+                        help="eigenvector cuts from the 8-root pair matrices themselves "
+                             "(the s=8 blocks of the order-10 flag SDP)")
+    parser.add_argument("--rpsd-per-root", type=int, default=2)
+    parser.add_argument("--max-rpsd", type=int, default=150)
+    parser.add_argument("--blocks10", default=None,
+                        help="type sizes of the order-10 flag moment blocks to cut on, e.g. 024 or 0246")
+    parser.add_argument("--b10-per-block", type=int, default=3)
+    parser.add_argument("--max-b10", type=int, default=150)
+    parser.add_argument("--work", type=Path, default=Path(".work"))
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--resume", type=Path, default=None)
     args = parser.parse_args()
@@ -339,6 +349,12 @@ def main() -> int:
     cat9 = Catalogue(states9)
     lift = np.load(args.flagsdp / "c5lift_cache.npz", allow_pickle=True)
     moments = MomentBlocks(cache9, lift) if args.psd else None
+    blocks10 = None
+    if args.blocks10:
+        from blocks10 import Blocks10
+        blocks10 = Blocks10(states10, args.work, args.blocks10)
+        print(f"order-10 blocks: {len(blocks10.keys)} types, widths up to {max(blocks10.sizes)}"
+              f"  [{time.time() - started:.0f}s]", flush=True)
     counts = np.rint(np.asarray(lift["Dval"]) * 10).astype(np.int64)
     columns = csr_matrix((counts, (lift["Drow"], lift["Dcol"])),
                          shape=(N9, N10), dtype=np.int64).tocsc()
@@ -437,6 +453,7 @@ def main() -> int:
         with args.resume.open("rb") as handle:
             saved = pickle.load(handle)
         restored = 0
+        pending_b10 = []
         for kind, a, b in saved["rows"]:
             if kind == "rule":
                 add_rule(root_by_tau[a], np.asarray(b, dtype=np.int8))
@@ -453,9 +470,27 @@ def main() -> int:
                 add_row(nz, row[nz], 0.0, INF)
                 rows_log.append(("psd", a, (block_index, np.asarray(vec))))
                 slack.append(0)
+            elif kind == "rpsd":
+                vec = np.asarray(b, dtype=float)
+                row = horn_by_tau[a].form_row(np.outer(vec, vec))
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("rpsd", a, vec))
+                slack.append(0)
+            elif kind == "b10":
+                pending_b10.append((tuple(a), np.asarray(b, dtype=np.int64)))
             else:
                 continue
             restored += 1
+        if pending_b10:
+            if blocks10 is None:
+                raise RuntimeError("the checkpoint has order-10 block rows; pass --blocks10")
+            for (key, vec), row in zip(pending_b10, blocks10.float_rows(pending_b10)):
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("b10", key, vec))
+                slack.append(0)
+                restored += 1
         print(f"resumed {restored} rows from {args.resume} (eta was {saved['eta']:+.6e})"
               f"  [{time.time() - started:.0f}s]", flush=True)
     else:
@@ -544,12 +579,56 @@ def main() -> int:
                 slack.append(0)
                 psd_cuts += 1
                 psd_worst = min(psd_worst, lam)
-        history.append((it, eta, added, horns, psd_cuts))
+        rpsd_cuts = 0
+        rpsd_worst = 0.0
+        if args.root_psd:
+            rpsd_candidates = []
+            for r in horn_roots:
+                M = r.pair_weights(q)
+                M = (M + M.T) / 2.0
+                if not M.any():
+                    continue
+                vals, vecs = np.linalg.eigh(M)
+                for j in range(min(args.rpsd_per_root, len(vals))):
+                    if vals[j] < -1e-9:
+                        rpsd_candidates.append((float(vals[j]), r, vecs[:, j].copy()))
+            rpsd_candidates.sort(key=lambda t: t[0])
+            for lam, r, vec in rpsd_candidates[:args.max_rpsd]:
+                row = r.form_row(np.outer(vec, vec))
+                for name, qs in seed_vectors:            # validity gate
+                    check = float(row @ qs)
+                    if check < -1e-9:
+                        raise RuntimeError(f"INVALID root-PSD cut at root {r.tau}: "
+                                           f"{check:+.3e} at {name}")
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("rpsd", r.tau, vec))
+                slack.append(0)
+                rpsd_cuts += 1
+                rpsd_worst = min(rpsd_worst, lam)
+        b10_cuts = 0
+        b10_worst = 0.0
+        if blocks10 is not None:
+            found = sorted(blocks10.separate(q, per_block=args.b10_per_block), key=lambda c: c[1])
+            for key, lam, row, vec in found[:args.max_b10]:
+                for name, qs in seed_vectors:            # validity gate
+                    check = float(row @ qs)
+                    if check < -1e-9:
+                        raise RuntimeError(f"INVALID order-10 block cut {key}: {check:+.3e} at {name}")
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("b10", key, vec))
+                slack.append(0)
+                b10_cuts += 1
+                b10_worst = min(b10_worst, lam)
+        history.append((it, eta, added, horns, psd_cuts, rpsd_cuts, b10_cuts))
         print(f"iter {it:3d}: status={status} eta={eta:+.6e} band={d_edge @ q:.4f} "
               f"rules +{added} (viol {worst:.1e}) horn +{horns} ({horn_worst:+.1e}) "
-              f"psd +{psd_cuts} ({psd_worst:+.1e}) dropped {len(droppable)} "
-              f"rows={len(rows_log)}  [{time.time() - started:.0f}s]", flush=True)
-        if added == 0 and horns == 0 and psd_cuts == 0:
+              f"psd +{psd_cuts} ({psd_worst:+.1e}) rpsd +{rpsd_cuts} ({rpsd_worst:+.1e}) "
+              f"b10 +{b10_cuts} ({b10_worst:+.1e}) "
+              f"dropped {len(droppable)} rows={len(rows_log)}  [{time.time() - started:.0f}s]",
+              flush=True)
+        if added == 0 and horns == 0 and psd_cuts == 0 and rpsd_cuts == 0 and b10_cuts == 0:
             print("no violated rows found: converged for these families", flush=True)
             break
         if eta <= 0:

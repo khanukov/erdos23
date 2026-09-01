@@ -15,6 +15,7 @@ Primal rows, written as `<row, x> <= rhs`:
     (H_j) -<horn_j, q>      <= 0             w_j  >= 0
     (P_k) -<psd_k, q>       <= 0             v_k  >= 0
     (Q_l) -<rpsd_l, q>      <= 0             t_l  >= 0   (v^T M_tau(q) v >= 0)
+    (T_m) -<b10_m, q>       <= 0             b_m  >= 0   (order-10 flag moment blocks)
     (M)   sum q              = 1             rho free
 
 Summing with these multipliers, and using `u >= 0`, `q >= 0`, gives `eta <= delta`
@@ -61,6 +62,7 @@ def main() -> int:
     parser.add_argument("--rebuilt", type=Path, required=True)
     parser.add_argument("--allpairs", type=Path, required=True)
     parser.add_argument("--result", type=Path, required=True)
+    parser.add_argument("--work", type=Path, default=Path(".work"))
     args = parser.parse_args()
     started = time.time()
 
@@ -157,11 +159,25 @@ def main() -> int:
     print(f"rule multipliers: {sum(1 for r in rows_log if r[0] == 'rule')} rows, "
           f"{scaled_roots} roots scaled up to reach a sum of one")
 
+    # order-10 block rows: exact integer numerators from the C helper, all at once
+    b10_rows = [(index, tuple(a), np.asarray(b, dtype=np.int64))
+                for index, (kind, a, b) in enumerate(rows_log) if kind == "b10" and multipliers[index] != 0]
+    b10_exact = {}
+    if b10_rows:
+        from blocks10 import SCALE, Blocks10
+        levels = "".join(sorted({str(a[0]) for _i, a, _v in b10_rows}))
+        blocks = Blocks10(states10, args.work, levels, verbose=False)
+        numerators = blocks.rows([(a, v) for _i, a, v in b10_rows])
+        for (index, a, _v), num in zip(b10_rows, numerators):
+            b10_exact[index] = (num, SCALE ** 2 * blocks.normaliser[a[0]])
+        print(f"order-10 block rows: {len(b10_rows)} exact numerators computed [{time.time() - started:.0f}s]",
+              flush=True)
+
     # loads
     load = [Fraction(0)] * N10
     for s in range(N10):
         load[s] = y_g * gram[s] - (y_hi - y_lo) * d_edge[s]
-    n_rule = n_horn = n_psd = n_rpsd = 0
+    n_rule = n_horn = n_psd = n_rpsd = n_b10 = 0
     for index, (kind, a, b) in enumerate(rows_log):
         mult = multipliers[index]
         if mult == 0 or kind in ("band", "gram", "mass", "leg8"):
@@ -192,6 +208,12 @@ def main() -> int:
                 for s, cnt in rows[o].items():
                     load[s] += coeff * cnt
             n_horn += 1
+        elif kind == "b10":
+            num, den = b10_exact[index]
+            for s, value in enumerate(num.tolist()):
+                if value:
+                    load[s] += mult * Fraction(value, den)
+            n_b10 += 1
         elif kind == "rpsd":
             root = all_roots[a]
             v = [rational(x, 10 ** 6) for x in b]
@@ -234,7 +256,8 @@ def main() -> int:
                   flush=True)
     rho = max(load)
     delta = y_hi * HI - y_lo * LO - Fraction(2, 25) + rho
-    print(f"\nrows used: {n_rule} rules, {n_horn} Horn, {n_psd} PSD, {n_rpsd} root-PSD")
+    print(f"\nrows used: {n_rule} rules, {n_horn} Horn, {n_psd} PSD, {n_rpsd} root-PSD, "
+          f"{n_b10} order-10 block rows")
     print(f"rho (largest load) = {float(rho):+.12e}")
     print(f"delta exact        = {delta}")
     print(f"delta              = {float(delta):+.12e}")
