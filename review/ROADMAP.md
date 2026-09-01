@@ -225,6 +225,8 @@ moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
 | 1 | band, mass, fixed Gram row, K8 rules | 40 | `+0.2157` |
 | 2 | + Horn rows | 60 | `+0.1818` |
 | 3 | + PSD eigenvector cuts | 15 (wall clock) | `+0.0564`, still falling |
+| 4 | same, with checkpoints / capped additions / row dropping | 27 | `+0.0567` at 4,158 rows, still falling |
+| 5 | + root-PSD cuts + order-10 flag blocks (types 0, 2, 4, 6) | running | resumed from run 4 |
 
 Run 3's trajectory — `0.2397, 0.2283, 0.2048, 0.1805, 0.1529, 0.1342, 0.1142,
 0.0958, 0.0792, 0.0659, 0.0564` — is the first time this LP has been seen to
@@ -236,6 +238,39 @@ engineering, not mathematics: the rows are nearly dense over 12,172 columns,
 run 3 had reached ~15,000 of them, and the fifteenth solve took a quarter of an
 hour. The current run adds per-iteration checkpoints, capped additions, and
 dropping of rows that stay slack, and resumes across wall-clock limits.
+
+Run 4 reached run 3's value with a quarter of the rows (the LP never exceeded
+4,200 rows), at the price of slower progress per iteration; its band row stayed
+inactive throughout (dual `0`), i.e. the LP is still fighting states that no
+graphon realises rather than the band itself. Two facts settled on the side:
+
+* `review/verify_u8_certificate.py` is validated. On a 3,106-row checkpoint the
+  exact rational `delta` is `+0.1257866` against the solver's `eta =
+  +0.1257862`; the difference is the rationalisation of the duals and the
+  seventeen roots whose rule multipliers had to be scaled up to sum to one.
+  (A first version discarded the Horn and PSD multipliers because HiGHS
+  reports non-negative duals on rows at their lower bound; fixed.)
+* `review/u8_band_scan.py`: the rebuilt 8-root envelope, maximised over the
+  band at fifteen blow-up points (C5, Petersen, Grotzsch, twelve dense order-9
+  bases), peaks at `0.069219` (Grotzsch), below `2/25 = 0.08`.
+
+Two stronger cut families are now in, both valid by the same argument as the
+moment blocks (an integral of `phi phi^T` is positive semidefinite):
+
+* **root-PSD** (`--root-psd`): the 8-root pair matrices `M_tau(q)` themselves
+  are completely positive at every graphon, so their negative eigenvectors give
+  rows `v^T M_tau(q) v >= 0` through the orbit machinery already built. At the
+  run-4 point they are violated to `-3.2e-3`.
+* **order-10 flag blocks** (`--blocks10 0246`, `review/blocks10.c`): the
+  genuine order-10 moment blocks for the 48 types of size 0, 2, 4, 6 (widths up
+  to 2,445), computed exactly as integer counts by a small C program from the
+  12,172 states. They are positive semidefinite to `1e-15` at the C5, Grotzsch
+  and Petersen blow-ups and reproduce their edge densities, and the type-0
+  block is indefinite to `-3.4e-3` at the run-4 point: seventy times the
+  violation the lifted order-9 blocks show. The repository's data only ever
+  contained four order-9 blocks; this is the missing bulk of the flag SDP.
+  Cut vectors are rounded to integers over `1e6`, so the exact verifier
+  recomputes every row bit for bit from the same integer data.
 
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of
