@@ -1,0 +1,16 @@
+state     0: all levels agree  [82s]
+state   675: all levels agree  [218s]
+state  2740: all levels agree  [373s]
+state  3653: all levels agree  [539s]
+state  7036: all levels agree  [659s]
+state  7603: all levels agree  [789s]
+state  8323: all levels agree  [924s]
+state  9438: all levels agree  [1033s]
+state 10144: all levels agree  [1155s]
+state 10915: all levels agree  [1273s]
+state 11492: all levels agree  [1426s]
+state 12171: all levels agree  [1538s]
+
+394 nonzero blocks compared over 12 states, signatures rounded to 1e-6
+VERDICT: the C helper's order-10 blocks agree with the independent Python enumeration
+EXIT=0
