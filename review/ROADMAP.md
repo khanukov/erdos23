@@ -295,7 +295,11 @@ on a `q` that no graphon realises. Two consequences:
   pair matrices and the size-0/2 blocks as cones, 869,230 cone rows, 17M
   nonzeros) is the wrong lever: SCS did not finish one solve in two hours,
   and the blocks that matter -- size 6, widths up to 2,445 -- cannot be made
-  explicit at all without a symmetry reduction. Parked.
+  explicit at all without a symmetry reduction. With the indirect linear
+  solver SCS does run, at 2.5 s per iteration: after 1,750 iterations
+  (77 minutes) the objective was still drifting (`0.0375, 0.0370, 0.0350`)
+  with residuals `1e-3`, above the LP's own value on the same pool, i.e. not
+  yet converged when the wall clock cut it. Parked.
 * The lever is more size-6 cuts per iteration. Run 7 takes eight eigenvectors
   per block instead of three.
 
@@ -315,6 +319,16 @@ run 6 from the same start and with the same caps (`review/u8_lp_inout_test.txt`)
 in-out at `lam = 0.5` gives `0.0535, 0.0505, 0.0478` against `0.0535, 0.0505,
 0.0480`: every in-out cut also cut the optimum, but the gain is a rounding
 error. The bottleneck is the count of negative directions, not cut depth.
+
+The remedy that matches that diagnosis is the spectral-bundle idea:
+besides the few individual eigenvector cuts, add per block one *aggregated*
+row `tr(U U^T M(q)) >= 0` with `U` the next up to 300 negative eigenvectors
+(rounded over `1e3`, so `U U^T` is an exact integer Gram matrix and the row
+stays verifiable). At the run-7 point the 48 order-10 aggregates alone are
+violated by `-2.2e-3` in total, ten times any individual cut, and they are
+`>= 0` at the C5 and Grotzsch blow-ups as they must be. Run 9 (`--aggregate`)
+is the same LP as run 8 plus these rows, from the same checkpoint, so the two
+can be compared round by round.
 
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of
