@@ -227,7 +227,8 @@ moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
 | 3 | + PSD eigenvector cuts | 15 (wall clock) | `+0.0564`, still falling |
 | 4 | same, with checkpoints / capped additions / row dropping | 27 | `+0.0567` at 4,158 rows, still falling |
 | 5 | + root-PSD cuts + order-10 flag blocks (types 0, 2, 4, 6) | 2 | `+0.0535`; 20 min per simplex solve |
-| 6 | same, interior-point solver | running | `0.0535, 0.0505, 0.0480, ...` at 5 min per iteration |
+| 6 | same, interior-point solver | 17 | `+0.0293` at 8,213 rows, gaining 0.0007 per iteration |
+| 7 | same, eight eigenvectors per order-10 block per iteration | running | resumed from run 6 |
 
 Run 3's trajectory — `0.2397, 0.2283, 0.2048, 0.1805, 0.1529, 0.1342, 0.1142,
 0.0958, 0.0792, 0.0659, 0.0564` — is the first time this LP has been seen to
@@ -281,6 +282,22 @@ slowed to twenty minutes per solve at 5,000 rows. HiGHS's interior-point
 method solves the same LP in two to three minutes (`--solver ipm`), and any
 nonnegative interior duals are as good as vertex duals for the exact
 certificate, so run 6 uses it.
+
+Run 6's dual says where the weight is. At `eta = +0.0293` the 1,520 cuts from
+the size-6 order-10 blocks carry a dual mass of `1.4e5` against `3.1e3` for
+the size-4 blocks, `42` for size 2, `1.3e3` for the four lifted order-9 blocks
+and `243` for the 8-root pair matrices (scales differ, but the ranking is
+robust: 1,477 of the 1,520 size-6 cuts are active). The band row is still
+inactive, so the LP's worst case sits at `d_edge = 0.28`, inside the band,
+on a `q` that no graphon realises. Two consequences:
+
+* An SDP with the small blocks explicit (`review/sdp_u8.py`, SCS: the 410
+  pair matrices and the size-0/2 blocks as cones, 869,230 cone rows, 17M
+  nonzeros) is the wrong lever: SCS did not finish one solve in two hours,
+  and the blocks that matter -- size 6, widths up to 2,445 -- cannot be made
+  explicit at all without a symmetry reduction. Parked.
+* The lever is more size-6 cuts per iteration. Run 7 takes eight eigenvectors
+  per block instead of three.
 
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of
