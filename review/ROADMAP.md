@@ -226,7 +226,8 @@ moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
 | 2 | + Horn rows | 60 | `+0.1818` |
 | 3 | + PSD eigenvector cuts | 15 (wall clock) | `+0.0564`, still falling |
 | 4 | same, with checkpoints / capped additions / row dropping | 27 | `+0.0567` at 4,158 rows, still falling |
-| 5 | + root-PSD cuts + order-10 flag blocks (types 0, 2, 4, 6) | running | resumed from run 4 |
+| 5 | + root-PSD cuts + order-10 flag blocks (types 0, 2, 4, 6) | 2 | `+0.0535`; 20 min per simplex solve |
+| 6 | same, interior-point solver | running | `0.0535, 0.0505, 0.0480, ...` at 5 min per iteration |
 
 Run 3's trajectory — `0.2397, 0.2283, 0.2048, 0.1805, 0.1529, 0.1342, 0.1142,
 0.0958, 0.0792, 0.0659, 0.0564` — is the first time this LP has been seen to
@@ -271,6 +272,15 @@ moment blocks (an integral of `phi phi^T` is positive semidefinite):
   contained four order-9 blocks; this is the missing bulk of the flag SDP.
   Cut vectors are rounded to integers over `1e6`, so the exact verifier
   recomputes every row bit for bit from the same integer data.
+  `review/check_blocks10.py` re-derives the blocks of twelve sampled states in
+  plain Python (its own canonical forms and flag indexing) and compares
+  indexing-free signatures: 394 nonzero blocks agree.
+
+The order-10 rows are dense over the 12,172 states, and the dual simplex
+slowed to twenty minutes per solve at 5,000 rows. HiGHS's interior-point
+method solves the same LP in two to three minutes (`--solver ipm`), and any
+nonnegative interior duals are as good as vertex duals for the exact
+certificate, so run 6 uses it.
 
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of

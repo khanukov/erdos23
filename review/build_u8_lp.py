@@ -485,6 +485,7 @@ def main() -> int:
                 slack.append(0)
             elif kind == "b10":
                 pending_b10.append((tuple(a), np.asarray(b, dtype=np.int64)))
+                continue
             else:
                 continue
             restored += 1
