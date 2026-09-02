@@ -335,6 +335,10 @@ def main() -> int:
     parser.add_argument("--b10-per-block", type=int, default=3)
     parser.add_argument("--max-b10", type=int, default=150)
     parser.add_argument("--work", type=Path, default=Path(".work"))
+    parser.add_argument("--solver", default="simplex", choices=["simplex", "ipm", "pdlp"])
+    parser.add_argument("--crossover", default="on", choices=["on", "off"])
+    parser.add_argument("--slack-tol", type=float, default=None,
+                        help="a row whose |dual| stays below this counts as slack (default 1e-12, 1e-7 for ipm)")
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--resume", type=Path, default=None)
     args = parser.parse_args()
@@ -400,6 +404,8 @@ def main() -> int:
     h = highspy.Highs()
     h.setOptionValue("output_flag", False)
     h.setOptionValue("presolve", "on")
+    h.setOptionValue("solver", args.solver)
+    h.setOptionValue("run_crossover", args.crossover)
     lower = np.zeros(ncols)
     upper = np.full(ncols, INF)
     lower[col_eta] = -INF
@@ -515,8 +521,9 @@ def main() -> int:
         duals_now = np.asarray(sol.row_dual)
         checkpoint(eta, x, duals_now)
         # drop rows that have been slack for several consecutive solves
+        slack_tol = args.slack_tol if args.slack_tol is not None else (1e-7 if args.solver == "ipm" else 1e-12)
         for i in range(len(rows_log)):
-            if abs(duals_now[i]) < 1e-12:
+            if abs(duals_now[i]) < slack_tol:
                 slack[i] += 1
             else:
                 slack[i] = 0

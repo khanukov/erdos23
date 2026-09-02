@@ -1,0 +1,7 @@
+order-10 blocks: 48 types, widths up to 2445  [2s]
+all-pairs data: 410 types; all-ones check max |sum - 1| = 6.661e-16  [52s]
+root data: 410 live types, closure widths up to 256, orbits up to 1791  [52s]
+constant-rule check: max |sum_tau h_const - d_edge| = 1.110e-16
+resumed 4154 rows from .work/u8_lp_run4_last.pkl (eta was +5.667907e-02)  [90s]
+iter   0: status=Optimal eta=+5.667907e-02 band=0.2842 rules +150 (viol 1.0e-03) horn +150 (-2.1e-03) psd +11 (-8.7e-06) rpsd +100 (-9.5e-04) b10 +120 (-1.5e-03) dropped 0 rows=4689  [1244s]
+iter   1: status=Optimal eta=+5.345535e-02 band=0.2825 rules +150 (viol 9.9e-04) horn +150 (-1.0e-03) psd +11 (-1.1e-05) rpsd +100 (-3.9e-04) b10 +120 (-6.1e-04) dropped 0 rows=5220  [2513s]
