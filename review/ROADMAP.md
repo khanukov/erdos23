@@ -228,7 +228,9 @@ moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
 | 4 | same, with checkpoints / capped additions / row dropping | 27 | `+0.0567` at 4,158 rows, still falling |
 | 5 | + root-PSD cuts + order-10 flag blocks (types 0, 2, 4, 6) | 2 | `+0.0535`; 20 min per simplex solve |
 | 6 | same, interior-point solver | 17 | `+0.0293` at 8,213 rows, gaining 0.0007 per iteration |
-| 7 | same, eight eigenvectors per order-10 block per iteration | running | resumed from run 6 |
+| 7 | same, eight eigenvectors per order-10 block per iteration | 2 | `+0.0286`; same gain per round at three times the cost |
+| 8 | run 6's settings, from run 7's checkpoint | 2 | `0.0286, 0.0280` |
+| 9 | + aggregated (spectral-bundle) cuts, same start | running | `0.0286, 0.0279, ...` at 30 min per round |
 
 Run 3's trajectory — `0.2397, 0.2283, 0.2048, 0.1805, 0.1529, 0.1342, 0.1142,
 0.0958, 0.0792, 0.0659, 0.0564` — is the first time this LP has been seen to
@@ -328,7 +330,14 @@ stays verifiable). At the run-7 point the 48 order-10 aggregates alone are
 violated by `-2.2e-3` in total, ten times any individual cut, and they are
 `>= 0` at the C5 and Grotzsch blow-ups as they must be. Run 9 (`--aggregate`)
 is the same LP as run 8 plus these rows, from the same checkpoint, so the two
-can be compared round by round.
+can be compared round by round: after one round run 8 gained `0.00060`, run 9
+`0.00077`. Better, not decisive. The honest reading of runs 4-9 together is
+that the order-10 LP on these families converges at well under `0.001` per
+round with rounds of twenty to thirty minutes, and that no configuration of
+cutting planes tried here changes that by more than a third. Whether its limit
+is below zero is not known; reaching it would need either an SDP solver that
+handles the size-4 and size-6 blocks (symmetry reduction by `Aut(sigma)`, a
+project in itself) or a stronger algebra (§4).
 
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of
