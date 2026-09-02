@@ -16,6 +16,7 @@ Primal rows, written as `<row, x> <= rhs`:
     (P_k) -<psd_k, q>       <= 0             v_k  >= 0
     (Q_l) -<rpsd_l, q>      <= 0             t_l  >= 0   (v^T M_tau(q) v >= 0)
     (T_m) -<b10_m, q>       <= 0             b_m  >= 0   (order-10 flag moment blocks)
+    (W_n) -<agg_n, q>       <= 0             a_n  >= 0   (tr(U U^T M(q)) >= 0, aggregated)
     (M)   sum q              = 1             rho free
 
 Summing with these multipliers, and using `u >= 0`, `q >= 0`, gives `eta <= delta`
@@ -173,11 +174,25 @@ def main() -> int:
         print(f"order-10 block rows: {len(b10_rows)} exact numerators computed [{time.time() - started:.0f}s]",
               flush=True)
 
+    b10w_rows = [(index, tuple(a), np.asarray(b, dtype=np.int64))
+                 for index, (kind, a, b) in enumerate(rows_log) if kind == "b10w" and multipliers[index] != 0]
+    b10w_exact = {}
+    if b10w_rows:
+        from blocks10 import AGG_SCALE, Blocks10
+        levels = "".join(sorted({str(a[0]) for _i, a, _u in b10w_rows}))
+        blocks = Blocks10(states10, args.work, levels, verbose=False)
+        mats = [(a, U @ U.T) for _i, a, U in b10w_rows]          # exact integer Gram matrices
+        numerators = blocks.form_rows(mats)
+        for (index, a, _u), num in zip(b10w_rows, numerators):
+            b10w_exact[index] = (num, AGG_SCALE ** 2 * blocks.normaliser[a[0]])
+        print(f"aggregated order-10 rows: {len(b10w_rows)} exact numerators computed "
+              f"[{time.time() - started:.0f}s]", flush=True)
+
     # loads
     load = [Fraction(0)] * N10
     for s in range(N10):
         load[s] = y_g * gram[s] - (y_hi - y_lo) * d_edge[s]
-    n_rule = n_horn = n_psd = n_rpsd = n_b10 = 0
+    n_rule = n_horn = n_psd = n_rpsd = n_b10 = n_agg = 0
     for index, (kind, a, b) in enumerate(rows_log):
         mult = multipliers[index]
         if mult == 0 or kind in ("band", "gram", "mass", "leg8"):
@@ -208,6 +223,45 @@ def main() -> int:
                 for s, cnt in rows[o].items():
                     load[s] += coeff * cnt
             n_horn += 1
+        elif kind == "b10w":
+            num, den = b10w_exact[index]
+            for s, value in enumerate(num.tolist()):
+                if value:
+                    load[s] += mult * Fraction(value, den)
+            n_agg += 1
+        elif kind == "rpsdw":
+            root = all_roots[a]
+            U = np.asarray(b, dtype=np.int64)
+            W = U @ U.T                                    # integer, entries over 1000^2
+            rows = orbit_rows(root, ("a", a))
+            for o, (ma, mb) in enumerate(zip(root.member_a, root.member_b)):
+                total = int(W[ma, mb].sum())
+                if total == 0:
+                    continue
+                coeff = mult * Fraction(total, 1000 ** 2 * 90 * len(ma))
+                for s, cnt in rows[o].items():
+                    load[s] += coeff * cnt
+            n_agg += 1
+        elif kind == "psdw":
+            block_index, U = b
+            label, mats, den = moment_blocks[block_index]
+            W = np.asarray(U, dtype=np.int64) @ np.asarray(U, dtype=np.int64).T
+            k = W.shape[0]
+            Wl = [[int(W[i, j]) for j in range(k)] for i in range(k)]
+            D = deletion.tocsr()
+            for s9 in range(N9):
+                M = mats[s9]
+                acc = 0
+                for i in range(k):
+                    row_i = M[i]
+                    acc += sum(Wl[i][j] * int(row_i[j]) for j in range(k))
+                if acc == 0:
+                    continue
+                w = Fraction(acc, 1000 ** 2 * den[s9])
+                for s10, cnt in zip(D.indices[D.indptr[s9]:D.indptr[s9 + 1]].tolist(),
+                                    D.data[D.indptr[s9]:D.indptr[s9 + 1]].tolist()):
+                    load[s10] += mult * w * Fraction(int(cnt), 10)
+            n_agg += 1
         elif kind == "b10":
             num, den = b10_exact[index]
             for s, value in enumerate(num.tolist()):
@@ -257,7 +311,7 @@ def main() -> int:
     rho = max(load)
     delta = y_hi * HI - y_lo * LO - Fraction(2, 25) + rho
     print(f"\nrows used: {n_rule} rules, {n_horn} Horn, {n_psd} PSD, {n_rpsd} root-PSD, "
-          f"{n_b10} order-10 block rows")
+          f"{n_b10} order-10 block rows, {n_agg} aggregated rows")
     print(f"rho (largest load) = {float(rho):+.12e}")
     print(f"delta exact        = {delta}")
     print(f"delta              = {float(delta):+.12e}")

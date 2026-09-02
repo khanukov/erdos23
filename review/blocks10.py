@@ -24,6 +24,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 SCALE = 10 ** 6
+AGG_SCALE = 10 ** 3
 
 
 class Blocks10:
@@ -105,6 +106,57 @@ class Blocks10:
         vf.unlink()
         out.unlink()
         return acc
+
+    def form_rows(self, matrices):
+        """matrices: list of (key, int64 nF x nF W) -> int64 (len, n_states): sum over occurrences of W[F1,F2]."""
+        if not matrices:
+            return np.zeros((0, self.n_states), dtype=np.int64)
+        mf = self._tmp("w")
+        out = self._tmp("f")
+        chunks = [struct.pack("i", len(matrices))]
+        for (s, t), W in matrices:
+            W = np.ascontiguousarray(W, dtype=np.int64)
+            chunks.append(struct.pack("iii", s, t, W.shape[0]) + W.tobytes())
+        mf.write_bytes(b"".join(chunks))
+        subprocess.run([str(self.binary), "form", str(self.states_bin), str(self.index_bin),
+                        str(mf), str(out), self.levels], check=True)
+        acc = np.frombuffer(out.read_bytes(), dtype=np.int64).reshape(len(matrices), self.n_states)
+        mf.unlink()
+        out.unlink()
+        return acc
+
+    def aggregate_rows(self, aggregates):
+        """aggregates: list of (key, int16/int64 U of shape nF x k, entries over AGG_SCALE);
+        the row is tr(U U^T M_sigma(q)) / (AGG_SCALE^2 * normaliser)."""
+        mats = []
+        for key, U in aggregates:
+            U = np.asarray(U, dtype=np.int64)
+            mats.append((key, U @ U.T))
+        acc = self.form_rows(mats)
+        rows = np.empty(acc.shape, dtype=np.float64)
+        for i, ((s, _t), _U) in enumerate(aggregates):
+            rows[i] = acc[i] / (float(AGG_SCALE) ** 2 * self.normaliser[s])
+        return rows
+
+    def separate_aggregates(self, q, skip=3, max_k=300, tol=1e-9):
+        """One aggregated cut per block: the sum of v^T M v over the negative eigenvectors
+        beyond the `skip` most negative (those are added individually), at most `max_k`."""
+        found = []
+        for key, M in self.matrices(q):
+            M = (M + M.T) / 2.0
+            if not M.any():
+                continue
+            vals, vecs = np.linalg.eigh(M)
+            neg = np.nonzero(vals < -tol)[0]
+            if len(neg) <= skip:
+                continue
+            chosen = neg[skip:skip + max_k]
+            U = np.rint(vecs[:, chosen] * AGG_SCALE).astype(np.int16)
+            found.append((key, float(vals[chosen].sum()), U))
+        if not found:
+            return []
+        rows = self.aggregate_rows([(key, U) for key, _lam, U in found])
+        return [(key, lam, rows[i], U) for i, (key, lam, U) in enumerate(found)]
 
     def float_rows(self, vectors):
         acc = self.rows(vectors)

@@ -231,6 +231,24 @@ class MomentBlocks:
         w = np.einsum("i,sij,j->s", v, scaled, v)
         return np.asarray(self.Dt @ w).ravel()
 
+    def form_row(self, block_index, W):
+        _label, scaled = self.blocks[block_index]
+        w = np.einsum("ij,sij->s", W, scaled)
+        return np.asarray(self.Dt @ w).ravel()
+
+    def separate_aggregates(self, q10, skip=3, max_k=300, tol=1e-9):
+        found = []
+        for b, (label, M) in enumerate(self.matrices(q10)):
+            vals, vecs = np.linalg.eigh((M + M.T) / 2.0)
+            neg = np.nonzero(vals < -tol)[0]
+            if len(neg) <= skip:
+                continue
+            chosen = neg[skip:skip + max_k]
+            U = np.rint(vecs[:, chosen] * 1000.0).astype(np.int16)
+            Uf = U.astype(float) / 1000.0
+            found.append((label, float(vals[chosen].sum()), self.form_row(b, Uf @ Uf.T), (b, U)))
+        return found
+
     def separate(self, q10, tol=1e-9, per_block=3):
         cuts = []
         for b, (label, M) in enumerate(self.matrices(q10)):
@@ -336,6 +354,10 @@ def main() -> int:
     parser.add_argument("--max-b10", type=int, default=150)
     parser.add_argument("--work", type=Path, default=Path(".work"))
     parser.add_argument("--solver", default="simplex", choices=["simplex", "ipm", "pdlp"])
+    parser.add_argument("--aggregate", action="store_true",
+                        help="spectral-bundle style aggregated cuts: one row per block summing the "
+                             "remaining negative eigen-directions (b10w / rpsdw / psdw rows)")
+    parser.add_argument("--agg-k", type=int, default=300)
     parser.add_argument("--in-out", type=float, default=0.0,
                         help="in-out separation: separate PSD/Horn cuts at lambda*q_out + (1-lambda)*q_in, "
                              "q_in a mixture of graphon state vectors (0 = off)")
@@ -486,7 +508,7 @@ def main() -> int:
         with args.resume.open("rb") as handle:
             saved = pickle.load(handle)
         restored = 0
-        pending_b10 = []
+        pending_b10, pending_b10w = [], []
         for kind, a, b in saved["rows"]:
             if kind == "rule":
                 add_rule(root_by_tau[a], np.asarray(b, dtype=np.int8))
@@ -513,6 +535,24 @@ def main() -> int:
             elif kind == "b10":
                 pending_b10.append((tuple(a), np.asarray(b, dtype=np.int64)))
                 continue
+            elif kind == "b10w":
+                pending_b10w.append((tuple(a), np.asarray(b, dtype=np.int16)))
+                continue
+            elif kind == "rpsdw":
+                U = np.asarray(b, dtype=float) / 1000.0
+                row = horn_by_tau[a].form_row(U @ U.T)
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("rpsdw", a, np.asarray(b, dtype=np.int16)))
+                slack.append(0)
+            elif kind == "psdw":
+                block_index, U = b
+                Uf = np.asarray(U, dtype=float) / 1000.0
+                row = moments.form_row(block_index, Uf @ Uf.T)
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("psdw", a, (block_index, np.asarray(U, dtype=np.int16))))
+                slack.append(0)
             else:
                 continue
             restored += 1
@@ -523,6 +563,15 @@ def main() -> int:
                 nz = np.nonzero(row)[0]
                 add_row(nz, row[nz], 0.0, INF)
                 rows_log.append(("b10", key, vec))
+                slack.append(0)
+                restored += 1
+        if pending_b10w:
+            if blocks10 is None:
+                raise RuntimeError("the checkpoint has aggregated order-10 rows; pass --blocks10")
+            for (key, U), row in zip(pending_b10w, blocks10.aggregate_rows(pending_b10w)):
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append(("b10w", key, U))
                 slack.append(0)
                 restored += 1
         print(f"resumed {restored} rows from {args.resume} (eta was {saved['eta']:+.6e})"
@@ -674,6 +723,46 @@ def main() -> int:
                 slack.append(0)
                 b10_cuts += 1
                 b10_worst = min(b10_worst, lam_b)
+        agg_cuts = 0
+        agg_worst = 0.0
+        if args.aggregate:
+            agg_found = []
+            if blocks10 is not None:
+                for key, lam_a, row, U in blocks10.separate_aggregates(q_sep, skip=args.b10_per_block,
+                                                                         max_k=args.agg_k):
+                    agg_found.append(("b10w", key, lam_a, row, U))
+            if moments is not None:
+                for label, lam_a, row, (b_idx, U) in moments.separate_aggregates(q_sep, skip=3, max_k=args.agg_k):
+                    agg_found.append(("psdw", label, lam_a, row, (b_idx, U)))
+            if args.root_psd:
+                for r in horn_roots:
+                    M = r.pair_weights(q_sep)
+                    M = (M + M.T) / 2.0
+                    if not M.any():
+                        continue
+                    vals, vecs = np.linalg.eigh(M)
+                    neg = np.nonzero(vals < -1e-9)[0]
+                    if len(neg) <= args.rpsd_per_root:
+                        continue
+                    chosen = neg[args.rpsd_per_root:args.rpsd_per_root + args.agg_k]
+                    U = np.rint(vecs[:, chosen] * 1000.0).astype(np.int16)
+                    Uf = U.astype(float) / 1000.0
+                    agg_found.append(("rpsdw", r.tau, float(vals[chosen].sum()), r.form_row(Uf @ Uf.T), U))
+            for kind, key, lam_a, row, payload in agg_found:
+                for name, qs in seed_vectors:            # validity gate
+                    check = float(row @ qs)
+                    if check < -1e-9:
+                        raise RuntimeError(f"INVALID aggregated cut {kind} {key}: {check:+.3e} at {name}")
+                found_cuts += 1
+                if float(row @ q) > -1e-12:
+                    continue
+                kept_cuts += 1
+                nz = np.nonzero(row)[0]
+                add_row(nz, row[nz], 0.0, INF)
+                rows_log.append((kind, key, payload))
+                slack.append(0)
+                agg_cuts += 1
+                agg_worst = min(agg_worst, lam_a)
         if q_in is not None:
             # adapt: when few cuts found at the inner point still cut the optimum, move outward
             if found_cuts and kept_cuts < 0.5 * found_cuts:
@@ -685,10 +774,11 @@ def main() -> int:
               f"rules +{added} (viol {worst:.1e}) horn +{horns} ({horn_worst:+.1e}) "
               f"psd +{psd_cuts} ({psd_worst:+.1e}) rpsd +{rpsd_cuts} ({rpsd_worst:+.1e}) "
               f"b10 +{b10_cuts} ({b10_worst:+.1e}) "
-              f"dropped {len(droppable)} rows={len(rows_log)}"
+              + (f"agg +{agg_cuts} ({agg_worst:+.1e}) " if args.aggregate else "")
+              + f"dropped {len(droppable)} rows={len(rows_log)}"
               + (f" in-out {kept_cuts}/{found_cuts} lam={lam:.2f}" if q_in is not None else "")
               + f"  [{time.time() - started:.0f}s]", flush=True)
-        if added == 0 and horns == 0 and psd_cuts == 0 and rpsd_cuts == 0 and b10_cuts == 0:
+        if added == 0 and horns == 0 and psd_cuts == 0 and rpsd_cuts == 0 and b10_cuts == 0 and agg_cuts == 0:
             print("no violated rows found: converged for these families", flush=True)
             break
         if eta <= 0:

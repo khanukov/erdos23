@@ -24,6 +24,10 @@
  *   blocks10 rows   states.bin tuples.bin vecs.bin out.bin
  *       vecs: int32 count; per vector: int32 s, int32 type, int32 nF, int64[nF]
  *       out : per vector int64[n_states] exact numerators v^T M_sigma(G) v
+ *   blocks10 form   states.bin tuples.bin mats.bin out.bin
+ *       mats: int32 count; per matrix: int32 s, int32 type, int32 nF, int64[nF*nF] W
+ *       out : per matrix int64[n_states] exact sums  sum_{(F1,F2)} W[F1,F2]  over
+ *             the occurrences in each state, i.e. the numerator of tr(W M_sigma(G))
  *   blocks10 triplets states.bin tuples.bin out.bin  explicit per-state blocks
  *       out: int32 n_levels; per level int32 s, int32 n_types; per type int32 nF,
  *            int64 n, then int32 state[n], f1[n], f2[n], count[n] with f1 >= f2
@@ -382,6 +386,26 @@ static void rows_visit(int l, int t, int f1, int f2, void *ctx) {
     }
 }
 
+/* form: trace of a dense coefficient matrix against every state's block */
+typedef struct {
+    int n_mats;
+    int *mat_level, *mat_type;
+    int64_t **W;
+    int64_t *acc;         /* n_mats * n_states */
+    int st;
+    int **by_type_start;
+    int *order;
+} FormCtx;
+static void form_visit(int l, int t, int f1, int f2, void *ctx) {
+    FormCtx *c = ctx;
+    int start = c->by_type_start[l][t], end = c->by_type_start[l][t + 1];
+    int nF = levels[l].n_flags[t];
+    for (int k = start; k < end; k++) {
+        int j = c->order[k];
+        c->acc[(size_t)j * n_states + c->st] += c->W[j][(size_t)f1 * nF + f2];
+    }
+}
+
 /* triplets: explicit per-state lower-triangular blocks */
 typedef struct {
     int32_t **acc;        /* per level: per type dense nF*nF int32 */
@@ -509,6 +533,7 @@ int main(int argc, char **argv) {
     if (!strcmp(mode, "index") && argc > 4) level_spec = argv[4];
     if ((!strcmp(mode, "moment") || !strcmp(mode, "rows")) && argc > 6) level_spec = argv[6];
     if (!strcmp(mode, "triplets") && argc > 5) level_spec = argv[5];
+    if (!strcmp(mode, "form") && argc > 6) level_spec = argv[6];
     for (int k = 0; k <= 6; k++) gen_perms(k);
     n_levels = 0;
     for (const char *c = level_spec; *c; c++) build_level(&levels[n_levels++], *c - '0');
@@ -525,6 +550,53 @@ int main(int argc, char **argv) {
     if (!strcmp(mode, "index")) { build_index(argv[3]); return 0; }
     load_index(argv[3]);
     if (!strcmp(mode, "triplets")) { run_triplets(argv[4]); return 0; }
+    if (!strcmp(mode, "form")) {
+        FILE *fv = fopen(argv[4], "rb");
+        if (!fv) { perror(argv[4]); return 1; }
+        FormCtx ctx;
+        if (fread(&ctx.n_mats, sizeof(int), 1, fv) != 1) { fprintf(stderr, "bad mats\n"); return 1; }
+        ctx.mat_level = malloc(sizeof(int) * ctx.n_mats);
+        ctx.mat_type = malloc(sizeof(int) * ctx.n_mats);
+        ctx.W = malloc(sizeof(int64_t *) * ctx.n_mats);
+        for (int j = 0; j < ctx.n_mats; j++) {
+            int s, t, nF;
+            if (fread(&s, sizeof(int), 1, fv) != 1 || fread(&t, sizeof(int), 1, fv) != 1 ||
+                fread(&nF, sizeof(int), 1, fv) != 1) { fprintf(stderr, "bad mats\n"); return 1; }
+            int l = -1;
+            for (int k = 0; k < n_levels; k++) if (levels[k].s == s) l = k;
+            if (l < 0 || t < 0 || t >= levels[l].n_types || nF != levels[l].n_flags[t]) {
+                fprintf(stderr, "matrix %d: bad level/type/size\n", j); return 1;
+            }
+            ctx.mat_level[j] = l;
+            ctx.mat_type[j] = t;
+            size_t nn = (size_t)nF * nF;
+            ctx.W[j] = malloc(sizeof(int64_t) * nn);
+            if (fread(ctx.W[j], sizeof(int64_t), nn, fv) != nn) { fprintf(stderr, "short mats\n"); return 1; }
+        }
+        fclose(fv);
+        ctx.by_type_start = malloc(sizeof(int *) * n_levels);
+        ctx.order = malloc(sizeof(int) * (ctx.n_mats ? ctx.n_mats : 1));
+        int pos = 0;
+        for (int l = 0; l < n_levels; l++) {
+            ctx.by_type_start[l] = malloc(sizeof(int) * (levels[l].n_types + 1));
+            for (int t = 0; t < levels[l].n_types; t++) {
+                ctx.by_type_start[l][t] = pos;
+                for (int j = 0; j < ctx.n_mats; j++)
+                    if (ctx.mat_level[j] == l && ctx.mat_type[j] == t) ctx.order[pos++] = j;
+            }
+            ctx.by_type_start[l][levels[l].n_types] = pos;
+        }
+        ctx.acc = calloc((size_t)ctx.n_mats * n_states, sizeof(int64_t));
+        for (int st = 0; st < n_states; st++) {
+            ctx.st = st;
+            walk_state(st, form_visit, &ctx);
+        }
+        FILE *fo = fopen(argv[5], "wb");
+        if (!fo) { perror(argv[5]); return 1; }
+        fwrite(ctx.acc, sizeof(int64_t), (size_t)ctx.n_mats * n_states, fo);
+        fclose(fo);
+        return 0;
+    }
     if (!strcmp(mode, "moment")) {
         FILE *fq = fopen(argv[4], "rb");
         if (!fq) { perror(argv[4]); return 1; }
