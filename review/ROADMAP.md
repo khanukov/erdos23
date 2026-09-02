@@ -299,6 +299,19 @@ on a `q` that no graphon realises. Two consequences:
 * The lever is more size-6 cuts per iteration. Run 7 takes eight eigenvectors
   per block instead of three.
 
+And the reason Kelley cutting planes crawl here, measured at the run-6 point:
+the 48 order-10 blocks have 11,804 negative eigenvalues between them (the
+size-6 empty type alone has 1,084 of its 2,445, the size-2 non-edge block 116
+of 245), all tiny (`-1e-7` to `-2e-4`), summing to `-3.1e-3`. Three to eight
+eigenvector cuts per block per iteration against twelve thousand negative
+directions is why each iteration buys `0.001`. Two remedies are in the builder
+now: the eight-per-block separation of run 7, and in-out separation
+(`--in-out`): cuts are separated at `lam * q_out + (1 - lam) * q_in`, `q_in` a
+mixture of 43 graphon state vectors (the three seeds plus forty random
+weighted blow-ups of order-7 triangle-free graphs) at which every valid row
+holds, and kept only if they still cut the LP optimum; such cuts are deeper
+and the literature reports order-of-magnitude fewer rounds.
+
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of
 which is valid by construction, i.e. the strongest computer evidence for the

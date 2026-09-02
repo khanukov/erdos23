@@ -336,6 +336,10 @@ def main() -> int:
     parser.add_argument("--max-b10", type=int, default=150)
     parser.add_argument("--work", type=Path, default=Path(".work"))
     parser.add_argument("--solver", default="simplex", choices=["simplex", "ipm", "pdlp"])
+    parser.add_argument("--in-out", type=float, default=0.0,
+                        help="in-out separation: separate PSD/Horn cuts at lambda*q_out + (1-lambda)*q_in, "
+                             "q_in a mixture of graphon state vectors (0 = off)")
+    parser.add_argument("--in-out-bases", type=int, default=40)
     parser.add_argument("--crossover", default="on", choices=["on", "off"])
     parser.add_argument("--slack-tol", type=float, default=None,
                         help="a row whose |dual| stays below this counts as slack (default 1e-12, 1e-7 for ipm)")
@@ -455,6 +459,29 @@ def main() -> int:
     seed_vectors = []
     for name, base, w in seeds:
         seed_vectors.append((name, q10_of(cat9, profile_to_state, base, w / w.sum())))
+    q_in = None
+    lam = args.in_out
+    if args.in_out > 0:
+        # a mixture of many weighted blow-ups of small triangle-free graphs: every valid
+        # inequality holds at it, and its moment matrices are well inside the cone
+        mix = [q for _n, q in seed_vectors]
+        np_rng = np.random.default_rng(7)
+        # order-7 triangle-free graphs: the order-9 states restricted to their first 7 vertices
+        bases, seen = [], set()
+        for _o, masks in cache9["states"]:
+            adj = [m & 0x7F for m in list(masks)[:7]]
+            key = tuple(adj)
+            if key in seen or sum(bin(m).count("1") for m in adj) < 6:
+                continue
+            seen.add(key)
+            bases.append(adj)
+        np_rng.shuffle(bases)
+        for adj in bases[:args.in_out_bases]:
+            w = np_rng.dirichlet(np.ones(7))
+            mix.append(q10_of(cat9, profile_to_state, adj, w))
+        q_in = np.mean(mix, axis=0)
+        print(f"in-out: q_in from {len(mix)} graphon state vectors, support {int((q_in > 0).sum())}, "
+              f"d_edge {d_edge @ q_in:.4f}, lambda {lam}  [{time.time() - started:.0f}s]", flush=True)
     if args.resume and args.resume.exists():
         with args.resume.open("rb") as handle:
             saved = pickle.load(handle)
@@ -538,6 +565,8 @@ def main() -> int:
             slack[:] = [slack[i] for i in keep]
             for tau in pool:
                 pool[tau] = [c for (k, t, c) in rows_log if k == "rule" and t == tau]
+        q_sep = q if q_in is None else lam * q + (1.0 - lam) * q_in
+        found_cuts = kept_cuts = 0
         candidates = []
         for r in live:
             u_star = float(x[col_u[r.tau]])
@@ -554,7 +583,7 @@ def main() -> int:
         horn_worst = 0.0
         horn_candidates = []
         for r in horn_roots:
-            val, cyc = r.horn_search(q, rng, args.horn_restarts)
+            val, cyc = r.horn_search(q_sep, rng, args.horn_restarts)
             if cyc is None:
                 continue
             for val, cyc in r.last_cycles[:args.horn_per_root]:
@@ -562,6 +591,10 @@ def main() -> int:
         horn_candidates.sort(key=lambda t: t[0])
         for val, r, cyc in horn_candidates[:args.max_horn]:
             row = r.form_row(r.horn_coefficients(cyc))
+            found_cuts += 1
+            if q_in is not None and float(row @ q) > -1e-12:
+                continue
+            kept_cuts += 1
             for name, qs in seed_vectors:            # validity gate
                 check = float(row @ qs)
                 if check < -1e-12:
@@ -576,23 +609,27 @@ def main() -> int:
         psd_cuts = 0
         psd_worst = 0.0
         if moments is not None:
-            for label, lam, row, vec in moments.separate(q):
+            for label, lam_psd, row, vec in moments.separate(q_sep):
                 for name, qs in seed_vectors:            # validity gate
                     check = float(row @ qs)
                     if check < -1e-9:
                         raise RuntimeError(f"INVALID PSD cut ({label}): {check:+.3e} at {name}")
+                found_cuts += 1
+                if q_in is not None and float(row @ q) > -1e-12:
+                    continue
+                kept_cuts += 1
                 nz = np.nonzero(row)[0]
                 add_row(nz, row[nz], 0.0, INF)
                 rows_log.append(("psd", label, vec))
                 slack.append(0)
                 psd_cuts += 1
-                psd_worst = min(psd_worst, lam)
+                psd_worst = min(psd_worst, lam_psd)
         rpsd_cuts = 0
         rpsd_worst = 0.0
         if args.root_psd:
             rpsd_candidates = []
             for r in horn_roots:
-                M = r.pair_weights(q)
+                M = r.pair_weights(q_sep)
                 M = (M + M.T) / 2.0
                 if not M.any():
                     continue
@@ -601,41 +638,56 @@ def main() -> int:
                     if vals[j] < -1e-9:
                         rpsd_candidates.append((float(vals[j]), r, vecs[:, j].copy()))
             rpsd_candidates.sort(key=lambda t: t[0])
-            for lam, r, vec in rpsd_candidates[:args.max_rpsd]:
+            for lam_r, r, vec in rpsd_candidates[:args.max_rpsd]:
                 row = r.form_row(np.outer(vec, vec))
                 for name, qs in seed_vectors:            # validity gate
                     check = float(row @ qs)
                     if check < -1e-9:
                         raise RuntimeError(f"INVALID root-PSD cut at root {r.tau}: "
                                            f"{check:+.3e} at {name}")
+                found_cuts += 1
+                if q_in is not None and float(row @ q) > -1e-12:
+                    continue
+                kept_cuts += 1
                 nz = np.nonzero(row)[0]
                 add_row(nz, row[nz], 0.0, INF)
                 rows_log.append(("rpsd", r.tau, vec))
                 slack.append(0)
                 rpsd_cuts += 1
-                rpsd_worst = min(rpsd_worst, lam)
+                rpsd_worst = min(rpsd_worst, lam_r)
         b10_cuts = 0
         b10_worst = 0.0
         if blocks10 is not None:
-            found = sorted(blocks10.separate(q, per_block=args.b10_per_block), key=lambda c: c[1])
-            for key, lam, row, vec in found[:args.max_b10]:
+            found = sorted(blocks10.separate(q_sep, per_block=args.b10_per_block), key=lambda c: c[1])
+            for key, lam_b, row, vec in found[:args.max_b10]:
                 for name, qs in seed_vectors:            # validity gate
                     check = float(row @ qs)
                     if check < -1e-9:
                         raise RuntimeError(f"INVALID order-10 block cut {key}: {check:+.3e} at {name}")
+                found_cuts += 1
+                if q_in is not None and float(row @ q) > -1e-12:
+                    continue
+                kept_cuts += 1
                 nz = np.nonzero(row)[0]
                 add_row(nz, row[nz], 0.0, INF)
                 rows_log.append(("b10", key, vec))
                 slack.append(0)
                 b10_cuts += 1
-                b10_worst = min(b10_worst, lam)
+                b10_worst = min(b10_worst, lam_b)
+        if q_in is not None:
+            # adapt: when few cuts found at the inner point still cut the optimum, move outward
+            if found_cuts and kept_cuts < 0.5 * found_cuts:
+                lam = min(1.0, lam + 0.1)
+            elif found_cuts == 0:
+                lam = min(1.0, lam + 0.2)
         history.append((it, eta, added, horns, psd_cuts, rpsd_cuts, b10_cuts))
         print(f"iter {it:3d}: status={status} eta={eta:+.6e} band={d_edge @ q:.4f} "
               f"rules +{added} (viol {worst:.1e}) horn +{horns} ({horn_worst:+.1e}) "
               f"psd +{psd_cuts} ({psd_worst:+.1e}) rpsd +{rpsd_cuts} ({rpsd_worst:+.1e}) "
               f"b10 +{b10_cuts} ({b10_worst:+.1e}) "
-              f"dropped {len(droppable)} rows={len(rows_log)}  [{time.time() - started:.0f}s]",
-              flush=True)
+              f"dropped {len(droppable)} rows={len(rows_log)}"
+              + (f" in-out {kept_cuts}/{found_cuts} lam={lam:.2f}" if q_in is not None else "")
+              + f"  [{time.time() - started:.0f}s]", flush=True)
         if added == 0 and horns == 0 and psd_cuts == 0 and rpsd_cuts == 0 and b10_cuts == 0:
             print("no violated rows found: converged for these families", flush=True)
             break
