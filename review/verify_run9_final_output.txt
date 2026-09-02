@@ -1,0 +1,34 @@
+root data rebuilt [51s]
+static multipliers: y_hi=0.000000e+00 y_lo=3.000000e-12 y_g=2.001800e-08 y_L=1.000000e+00
+rule multipliers: 3598 rows, 0 roots scaled up to reach a sum of one
+order-10 block rows: 3099 exact numerators computed [202s]
+aggregated order-10 rows: 320 exact numerators computed [399s]
+  accumulated 1500/11205 rows [653s]
+  accumulated 2000/11205 rows [1152s]
+  accumulated 2500/11205 rows [1617s]
+  accumulated 3000/11205 rows [1948s]
+  accumulated 3500/11205 rows [2280s]
+  accumulated 4000/11205 rows [2586s]
+  accumulated 4500/11205 rows [2916s]
+  accumulated 5000/11205 rows [2960s]
+  accumulated 5500/11205 rows [3007s]
+  accumulated 6000/11205 rows [3053s]
+  accumulated 6500/11205 rows [3101s]
+  accumulated 7000/11205 rows [3245s]
+  accumulated 7500/11205 rows [3372s]
+  accumulated 8000/11205 rows [3499s]
+  accumulated 8500/11205 rows [3623s]
+  accumulated 9000/11205 rows [3748s]
+  accumulated 9500/11205 rows [3776s]
+  accumulated 10000/11205 rows [3906s]
+  accumulated 10500/11205 rows [3914s]
+  accumulated 11000/11205 rows [4043s]
+
+rows used: 2777 rules, 561 Horn, 344 PSD, 1453 root-PSD, 3099 order-10 block rows, 2145 aggregated rows
+rho (largest load) = +1.044666454849e-01
+delta              = +2.446664548418e-02
+solver's eta       = +2.446215393197e-02
+
+VERDICT: delta > 0 -- no certificate
+total 4047s
+EXIT=0
