@@ -230,7 +230,16 @@ moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
 | 6 | same, interior-point solver | 17 | `+0.0293` at 8,213 rows, gaining 0.0007 per iteration |
 | 7 | same, eight eigenvectors per order-10 block per iteration | 2 | `+0.0286`; same gain per round at three times the cost |
 | 8 | run 6's settings, from run 7's checkpoint | 2 | `0.0286, 0.0280` |
-| 9 | + aggregated (spectral-bundle) cuts, same start | running | `0.0286, 0.0279, ...` at 30 min per round |
+| 9 | + aggregated (spectral-bundle) cuts, same start | running | `0.0286, 0.0279, 0.0271, ...` at 35 min per round |
+
+The run-9 checkpoint at `eta = +0.0278840` (9,676 rows over all eight row
+families: 3,961 rules, 1,073 Horn, 288 lifted order-9 PSD, 1,475 root-PSD,
+2,414 order-10 block rows, 461 aggregated rows) was pushed through
+`review/verify_u8_certificate.py`: the exact rational bound is
+`delta = +0.0278882` (`review/verify_run9_output.txt`), the solver's value to
+`4e-6`. So the pipeline from integer data to an exact `delta` is complete and
+exercised on every family; what it certifies today is `d_mono <= 2/25 + 0.0279`
+on the band, not `2/25`.
 
 Run 3's trajectory — `0.2397, 0.2283, 0.2048, 0.1805, 0.1529, 0.1342, 0.1142,
 0.0958, 0.0792, 0.0659, 0.0564` — is the first time this LP has been seen to
@@ -475,10 +484,27 @@ Add the assertions the current build lacked:
 
 ## 9. Honest summary
 
-The realistic plan is: regenerate the 8-root decomposition properly and measure
-`sup U8` over the band (§3b) — days of work, and it may well be enough, since
-larger roots make the envelope tighter and the shipped one is only broken, not
-hopeless. In parallel, hand the 33 exported MaxCut instances (§3) to a real
+Status after this session's computations (§3b, §3c): the 8-root decomposition
+has been regenerated from scratch and validated at C5 to machine precision;
+its envelope stays below `2/25` at every in-band point tested (largest
+`0.0692`), so the 8-root route is alive where the 7-root route is provably
+dead (§3). The order-10 band LP on those rows, with K8 rules, rooted-Horn
+rows, the four lifted order-9 blocks, the 8-root pair matrices and the 48
+genuine order-10 flag blocks (types of size 0, 2, 4, 6, computed exactly and
+cross-checked independently), has an exactly verified bound of
+`d_mono <= 2/25 + 0.0279` on the band and is still improving, but at well
+under `0.001` per half-hour round; no cutting-plane variant tried (heavier
+separation, in-out, aggregated spectral-bundle cuts) changes the rate by more
+than a third, because the LP optimum carries about twelve thousand tiny
+negative eigen-directions across the blocks. Whether the order-10 limit is
+below zero is unknown. The next lever is an SDP solver for the size-4 and
+size-6 blocks, which needs their block-diagonalisation under `Aut(sigma)`
+(a project in itself), or the coloured algebra of §4.
+
+The plan as it stood before those computations, kept for the record: regenerate
+the 8-root decomposition properly and measure `sup U8` over the band (§3b) —
+days of work, and it may well be enough, since larger roots make the envelope
+tighter and the shipped one is only broken, not hopeless. In parallel, hand the 33 exported MaxCut instances (§3) to a real
 solver to learn whether the 7-root envelope is genuinely dead. Only if the
 8-root envelope also lands above `2/25` in the band does this become a
 two-coloured flag SDP project (§4), with order 8 first and order 9 as the
