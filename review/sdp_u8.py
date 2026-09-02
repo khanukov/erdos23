@@ -309,7 +309,7 @@ def main() -> int:
         A, b, cone, lin_start, psd_start = assemble()
         t0 = time.time()
         solver = scs.SCS({"A": A, "b": b, "c": c}, cone, eps_abs=args.eps, eps_rel=args.eps,
-                         max_iters=args.max_iters, verbose=False, use_indirect=args.indirect,
+                         max_iters=args.max_iters, verbose=True, use_indirect=args.indirect,
                          normalize=True, acceleration_lookback=10)
         if warm is not None and len(warm["y"]) == A.shape[0]:
             sol = solver.solve(warm_start=True, x=warm["x"], y=warm["y"], s=warm["s"])
