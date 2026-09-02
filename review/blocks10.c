@@ -24,6 +24,10 @@
  *   blocks10 rows   states.bin tuples.bin vecs.bin out.bin
  *       vecs: int32 count; per vector: int32 s, int32 type, int32 nF, int64[nF]
  *       out : per vector int64[n_states] exact numerators v^T M_sigma(G) v
+ *   blocks10 triplets states.bin tuples.bin out.bin  explicit per-state blocks
+ *       out: int32 n_levels; per level int32 s, int32 n_types; per type int32 nF,
+ *            int64 n, then int32 state[n], f1[n], f2[n], count[n] with f1 >= f2
+ *            (the per-state block is symmetric, so the lower triangle suffices)
  *   blocks10 info   states.bin                      print the levels and sizes
  *
  * states.bin: int32 n_states, then n_states*10 uint16 adjacency bitmasks.
@@ -378,6 +382,105 @@ static void rows_visit(int l, int t, int f1, int f2, void *ctx) {
     }
 }
 
+/* triplets: explicit per-state lower-triangular blocks */
+typedef struct {
+    int32_t **acc;        /* per level: per type dense nF*nF int32 */
+    int32_t ***acc_l;
+    int32_t **touched;    /* per level: per type list of touched flat indices */
+    int32_t ***touched_l;
+    int *n_touched;
+    int **n_touched_l;
+    int32_t **out_state, **out_f1, **out_f2, **out_count;   /* flattened per (level,type) */
+    size_t *out_n, *out_cap;
+    int *type_offset;     /* per level: offset of its types in the flattened arrays */
+} TripCtx;
+
+static void trip_visit(int l, int t, int f1, int f2, void *ctx) {
+    TripCtx *c = ctx;
+    int nF = levels[l].n_flags[t];
+    int32_t *acc = c->acc_l[l][t];
+    int idx = f1 * nF + f2;
+    if (acc[idx] == 0) c->touched_l[l][t][c->n_touched_l[l][t]++] = idx;
+    acc[idx]++;
+}
+
+static void run_triplets(const char *path) {
+    TripCtx c;
+    c.acc_l = malloc(sizeof(int32_t **) * n_levels);
+    c.touched_l = malloc(sizeof(int32_t **) * n_levels);
+    c.n_touched_l = malloc(sizeof(int *) * n_levels);
+    c.type_offset = malloc(sizeof(int) * (n_levels + 1));
+    int total_types = 0;
+    for (int l = 0; l < n_levels; l++) { c.type_offset[l] = total_types; total_types += levels[l].n_types; }
+    c.type_offset[n_levels] = total_types;
+    c.out_state = calloc(total_types, sizeof(int32_t *));
+    c.out_f1 = calloc(total_types, sizeof(int32_t *));
+    c.out_f2 = calloc(total_types, sizeof(int32_t *));
+    c.out_count = calloc(total_types, sizeof(int32_t *));
+    c.out_n = calloc(total_types, sizeof(size_t));
+    c.out_cap = calloc(total_types, sizeof(size_t));
+    for (int l = 0; l < n_levels; l++) {
+        int nt = levels[l].n_types;
+        c.acc_l[l] = malloc(sizeof(int32_t *) * nt);
+        c.touched_l[l] = malloc(sizeof(int32_t *) * nt);
+        c.n_touched_l[l] = calloc(nt, sizeof(int));
+        for (int t = 0; t < nt; t++) {
+            size_t nn = (size_t)levels[l].n_flags[t] * levels[l].n_flags[t];
+            c.acc_l[l][t] = calloc(nn, sizeof(int32_t));
+            c.touched_l[l][t] = malloc(sizeof(int32_t) * nn);
+        }
+    }
+    for (int st = 0; st < n_states; st++) {
+        walk_state(st, trip_visit, &c);
+        for (int l = 0; l < n_levels; l++)
+            for (int t = 0; t < levels[l].n_types; t++) {
+                int nF = levels[l].n_flags[t];
+                int32_t *acc = c.acc_l[l][t];
+                int g = c.type_offset[l] + t;
+                for (int k = 0; k < c.n_touched_l[l][t]; k++) {
+                    int idx = c.touched_l[l][t][k];
+                    int f1 = idx / nF, f2 = idx % nF;
+                    if (f1 >= f2) {
+                        if (acc[f1 * nF + f2] != acc[f2 * nF + f1]) { fprintf(stderr, "asymmetric block\n"); exit(1); }
+                        if (c.out_n[g] == c.out_cap[g]) {
+                            c.out_cap[g] = c.out_cap[g] ? c.out_cap[g] * 2 : 4096;
+                            c.out_state[g] = realloc(c.out_state[g], sizeof(int32_t) * c.out_cap[g]);
+                            c.out_f1[g] = realloc(c.out_f1[g], sizeof(int32_t) * c.out_cap[g]);
+                            c.out_f2[g] = realloc(c.out_f2[g], sizeof(int32_t) * c.out_cap[g]);
+                            c.out_count[g] = realloc(c.out_count[g], sizeof(int32_t) * c.out_cap[g]);
+                        }
+                        c.out_state[g][c.out_n[g]] = st;
+                        c.out_f1[g][c.out_n[g]] = f1;
+                        c.out_f2[g][c.out_n[g]] = f2;
+                        c.out_count[g][c.out_n[g]] = acc[idx];
+                        c.out_n[g]++;
+                    }
+                }
+                for (int k = 0; k < c.n_touched_l[l][t]; k++) acc[c.touched_l[l][t][k]] = 0;
+                c.n_touched_l[l][t] = 0;
+            }
+    }
+    FILE *fo = fopen(path, "wb");
+    if (!fo) { perror(path); exit(1); }
+    fwrite(&n_levels, sizeof(int), 1, fo);
+    for (int l = 0; l < n_levels; l++) {
+        fwrite(&levels[l].s, sizeof(int), 1, fo);
+        fwrite(&levels[l].n_types, sizeof(int), 1, fo);
+        for (int t = 0; t < levels[l].n_types; t++) {
+            int g = c.type_offset[l] + t;
+            int64_t n = (int64_t)c.out_n[g];
+            fwrite(&levels[l].n_flags[t], sizeof(int), 1, fo);
+            fwrite(&n, sizeof(int64_t), 1, fo);
+            fwrite(c.out_state[g], sizeof(int32_t), c.out_n[g], fo);
+            fwrite(c.out_f1[g], sizeof(int32_t), c.out_n[g], fo);
+            fwrite(c.out_f2[g], sizeof(int32_t), c.out_n[g], fo);
+            fwrite(c.out_count[g], sizeof(int32_t), c.out_n[g], fo);
+            fprintf(stderr, "level s=%d type %d: %lld triplets\n", levels[l].s, t, (long long)n);
+        }
+    }
+    fclose(fo);
+}
+
 static void read_states(const char *path) {
     FILE *fp = fopen(path, "rb");
     if (!fp) { perror(path); exit(1); }
@@ -405,6 +508,7 @@ int main(int argc, char **argv) {
     if (!strcmp(mode, "info") && argc > 3) level_spec = argv[3];
     if (!strcmp(mode, "index") && argc > 4) level_spec = argv[4];
     if ((!strcmp(mode, "moment") || !strcmp(mode, "rows")) && argc > 6) level_spec = argv[6];
+    if (!strcmp(mode, "triplets") && argc > 5) level_spec = argv[5];
     for (int k = 0; k <= 6; k++) gen_perms(k);
     n_levels = 0;
     for (const char *c = level_spec; *c; c++) build_level(&levels[n_levels++], *c - '0');
@@ -420,6 +524,7 @@ int main(int argc, char **argv) {
     }
     if (!strcmp(mode, "index")) { build_index(argv[3]); return 0; }
     load_index(argv[3]);
+    if (!strcmp(mode, "triplets")) { run_triplets(argv[4]); return 0; }
     if (!strcmp(mode, "moment")) {
         FILE *fq = fopen(argv[4], "rb");
         if (!fq) { perror(argv[4]); return 1; }
