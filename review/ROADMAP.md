@@ -310,7 +310,11 @@ now: the eight-per-block separation of run 7, and in-out separation
 mixture of 43 graphon state vectors (the three seeds plus forty random
 weighted blow-ups of order-7 triangle-free graphs) at which every valid row
 holds, and kept only if they still cut the LP optimum; such cuts are deeper
-and the literature reports order-of-magnitude fewer rounds.
+and the literature reports order-of-magnitude fewer rounds. Measured against
+run 6 from the same start and with the same caps (`review/u8_lp_inout_test.txt`),
+in-out at `lam = 0.5` gives `0.0535, 0.0505, 0.0478` against `0.0535, 0.0505,
+0.0480`: every in-out cut also cut the optimum, but the gain is a rounding
+error. The bottleneck is the count of negative directions, not cut depth.
 
 What a negative `eta` would and would not mean, stated before the number is
 in: it would be a floating-point LP certificate over row families each of
