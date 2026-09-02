@@ -230,7 +230,7 @@ moment matrices are PSD to `1e-18` at the genuine graphons and indefinite (to
 | 6 | same, interior-point solver | 17 | `+0.0293` at 8,213 rows, gaining 0.0007 per iteration |
 | 7 | same, eight eigenvectors per order-10 block per iteration | 2 | `+0.0286`; same gain per round at three times the cost |
 | 8 | run 6's settings, from run 7's checkpoint | 2 | `0.0286, 0.0280` |
-| 9 | + aggregated (spectral-bundle) cuts, same start | running | `0.0286, 0.0279, 0.0271, ...` at 35 min per round |
+| 9 | + aggregated (spectral-bundle) cuts, same start | 8 (wall clock, 5.4 h) | `0.0286, 0.0279, 0.0271, 0.0265, 0.0260, 0.0254, 0.0249, 0.0245` |
 
 The run-9 checkpoint at `eta = +0.0278840` (9,676 rows over all eight row
 families: 3,961 rules, 1,073 Horn, 288 lifted order-9 PSD, 1,475 root-PSD,
@@ -340,7 +340,10 @@ violated by `-2.2e-3` in total, ten times any individual cut, and they are
 `>= 0` at the C5 and Grotzsch blow-ups as they must be. Run 9 (`--aggregate`)
 is the same LP as run 8 plus these rows, from the same checkpoint, so the two
 can be compared round by round: after one round run 8 gained `0.00060`, run 9
-`0.00077`. Better, not decisive. The honest reading of runs 4-9 together is
+`0.00077`. Better, not decisive. Run 9 then went on for eight rounds in 5.4
+hours (`review/u8_lp_run_9.txt`), the gain per round drifting from `0.00077`
+down to `0.00046` while the LP grew from 9,676 to 11,520 rows and the rounds
+from 33 to 48 minutes; the last solve gave `eta = +0.024462`. The honest reading of runs 4-9 together is
 that the order-10 LP on these families converges at well under `0.001` per
 round with rounds of twenty to thirty minutes, and that no configuration of
 cutting planes tried here changes that by more than a third. Whether its limit
