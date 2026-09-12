@@ -1,6 +1,8 @@
 # Independent review of the order-10 certificate
 
 Review date: 2026-08-23. Commit reviewed: `e35fca0`.
+Re-verified in full on 2026-09-12 against `origin/main`, which is still at
+`e35fca0` (see §11).
 
 ## Verdict
 
@@ -547,3 +549,68 @@ future claim:**
    matches what `README.md` describes.
 6. Drop `GLOBAL_CONCLUSION` from the verifier output, or demote it to what is
    actually checked.
+
+## 11. Re-verification on `main`, 2026-09-12
+
+`origin/main` has had no new commits since the review: it still carries exactly
+`1a9cc22` (initial) and `e35fca0` (the publication). Everything below was re-run
+from a clean `git worktree` of `origin/main`, with no file from this review
+branch on the path.
+
+**The repository's own pipeline passes, again.** `make check` on that clean
+worktree: 179 of 179 committed-artifact and bundle checksums `OK`,
+`ASSEMBLED_ARTIFACTS_OK`, `ARTIFACT_INTEGRITY_OK`, `k7_root_caches=107`,
+`PASS: public exact moment vector was independently reconstructed`
+(12,172/12,172 exact coordinate matches), and `EXACT_DUAL_REPLAY_OK` for both
+the JSON and the pickle certificate — 10,188 descriptors, 11,560,170 nonzeros,
+`min_q_residual=0` at state 46, objective exactly `-9.878886951679021e-04`.
+`FULL_REPLAY_OK`, exit 0. The GitHub Actions run for `e35fca0` is likewise
+green. So the reproducibility claim is sound, and nothing in this review is a
+complaint about the arithmetic.
+
+**The mathematical findings reproduce unchanged.** The bundle the audit reads
+was checksum-verified against `BUNDLE_SHA256SUMS` first (134/134 `OK`), so the
+audit ran on exactly `main`'s data. `review/check_row_validity.py` reports:
+
+| finding | result on `main` at `e35fca0` |
+|---|---|
+| A: band multipliers | `y(d_edge <= HI) = y(d_edge >= LO) = 0` |
+| B: K8 envelope `U8 >= d_mono` | **False** at all three graphons |
+| C: rooted-Horn rows `>= 0` | 38 / 17 / 330 rows strictly negative |
+| D: rooted pair matrices PSD | 14 of 410 have a negative eigenvalue |
+
+with an exact rational witness for root 401: `x^T M x = -30911132658357/6103515625000000 < 0`.
+
+**Finding A is confirmed by the manuscript itself.** `paper/erdos23_full_solution_draft.tex`
+prints the static multipliers in the order high-density, low-density, fixed
+Gram, K7 leg, K8 leg as `(0, 0, 53956267978680, 1, 999999999999)`. The first two
+entries are the band; both are zero. The last entry is the K8 envelope leg,
+which carries `999999999999/10^12` — essentially the entire certificate rests on
+the one family that fails.
+
+**The failure is not an artifact of testing outside the band.** At the two test
+graphons whose edge density lies *inside* `[0.2486, 0.3197]` the K8 envelope
+still falls short of `d_mono`: Petersen blow-up `U8 = 0.055884 < 0.06`, skewed
+`C5` blow-up `U8 = 0.013718 < 0.02`. The envelope is evaluated at the *pool*
+minimum, i.e. the largest value the LP's own rows can produce, so this is the
+most favourable reading available to the certificate.
+
+**Why a green CI does not catch any of this.** The workflow runs
+`check_artifacts.sh` and `run_full_replay.sh` and nothing else; it contains no
+row-validity check. The manuscript's own list of what the verifier does —
+descriptor syntax, matrix reconstruction, multiplier nonnegativity, the
+envelope-leg sum, the digit-split transpose product, the loads and the sign of
+`delta*` — contains no step that evaluates a reconstructed functional at a
+genuine triangle-free graphon. `STATUS.md` is candid about this, listing
+"Human audit of the generic K7/K8 MaxCut-row validity" and "Human audit of the
+rooted-Horn and fixed-Gram interfaces" under *Still required*. This review is
+that audit, and both items fail.
+
+**Reproducibility of row generation, as opposed to row replay.** Unchanged from
+§5: `generation/generate_fixed_gram_lp.py` imports `flag_cutgen`,
+`maxcut_coloring` from `cutting_plane_u8`, `horn_tuples_for_R` from
+`envelope_horn` and `sep_multi` from `run_k7b`, and opens
+`public_anc/horn_dual.pkl`. None of these five exist in the repository, in the
+full replay bundle, or in the compact archive (`public_anc/` ships only
+`mom_term_exact.pkl` and `moment_gram_w.pkl`). The stored rows can be replayed;
+they cannot be regenerated from what is published.
